@@ -1,29 +1,28 @@
-# Variables
+# Compiler & flags
 CC      := gcc
 CFLAGS  := -Wall -Wextra -Wno-deprecated-declarations -g -D_XOPEN_SOURCE=700 
 
-# List of object files
-OBJS    := process.o queue.o basic_functions.o 
+# Source files
+SRCS    := main.c fslib/tfs.c
 
-# Default target
-all: process
+# Object files (same paths, but .o)
+OBJS    := $(SRCS:.c=.o)
 
-# Link the executable
-process: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
+# The final executable
+TARGET  := tinyshell
 
-# Compile process.c (depends on queue.h)
-process.o: processlib/process.c queuelib/queue.h
-	$(CC) $(CFLAGS) -c $<
+.PHONY: all clean
 
-# Compile queue.c (depends on queue.h)
-queue.o: queuelib/queue.c queuelib/queue.h
-	$(CC) $(CFLAGS) -c $<
+all: $(TARGET)
 
-basic_functions.o: processlib/basic_functions.c processlib/basic_functions.h
-	$(CC) $(CFLAGS) -c $<
+# Link step
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
 
-# Clean up build artifacts
-.PHONY: clean
+# Compile any .c -> .o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(OBJS) process
+	rm -f $(OBJS) $(TARGET)
+

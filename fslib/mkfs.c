@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 
 
-int init_disk(fs_ctx_t *fs, unsigned size) {
+int init_disk(fs_ctx_t *fs, unsigned size, unsigned num_inodes) {
     char *disk_path = "disk"; // path to the disk file
     int fs_fd = open(disk_path, O_RDWR);   // file descriptor of filesystem disk
 
@@ -43,4 +43,15 @@ int init_disk(fs_ctx_t *fs, unsigned size) {
     // assign bitmap pointers
     fs->block_bitmap = (bitmap_t)(fs->disk + BLOCK_SIZE); // block bitmap starts after superblock
     fs->inode_bitmap = (bitmap_t)(fs->disk + 2 * BLOCK_SIZE); // inode bitmap starts after block bitmap
+
+    // fs->num_inodes = num_inodes; // total number of inodes
+    // fs->free_inodes = num_inodes; // initially all inodes are free
+    // fs->num_blocks = size / BLOCK_SIZE; // total number of blocks in the filesystem
+    // fs->free_blocks = fs->num_blocks - 3; // 3 blocks are reserved for superblock, block bitmap, and inode bitmap
+
+    // initialize bitmaps
+    bitmap_init(fs->block_bitmap, fs->num_blocks); 
+    bitmap_init(fs->inode_bitmap, fs->num_inodes); 
+
+
 }
