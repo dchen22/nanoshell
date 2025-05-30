@@ -7,6 +7,7 @@
 static tfs_file_t *files[MAX_NUM_FILES];    // file pointers
 static size_t num_files = 0;        
 
+
 int init_tfs() {
     num_files = 0;
     for (size_t i = 0; i < MAX_NUM_FILES; i++) {

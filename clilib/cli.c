@@ -38,11 +38,11 @@ int parse_command(char **argv) {
     char *command = argv[0];    // command must be first argument
 
     // command table 
-    if (strcmp(command, "hello") == 0) {
+    if (strcmp(command, "hello") == 0) {        // hello command
         printf("Hello, world!\n");
         return 0;
     }
-    else if (strcmp(command, "ls") == 0) {
+    else if (strcmp(command, "ls") == 0) {      // list files
         char **filelist = list_files();
 
         size_t index = 0;
@@ -51,13 +51,14 @@ int parse_command(char **argv) {
 
             // free the filename pointer
             free(filelist[index]);
+            filelist[index] = NULL; // good practice to avoid dangling the pointer
 
             index++;
         }
         free(filelist);
         return 0;
     }
-    else if (strcmp(command, "touch") == 0) {
+    else if (strcmp(command, "touch") == 0) {   // create a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: touch: missing file operand\n");
             return -1;
@@ -65,33 +66,46 @@ int parse_command(char **argv) {
         create_file(argv[1]);
         return 0;
     }
-    else if (strcmp(command, "write") == 0) {
+    else if (strcmp(command, "write") == 0) {   // write to a file
         if (get_argc(argv) < 3) {
             printf("nanoshell: write: Usage: write [filename] [contents]\n");
             return -1;
         }
-        write_file(argv[1], argv[2], strlen(argv[2]));
+        if (write_file(argv[1], argv[2], strlen(argv[2])) < 0) {
+            printf("nanoshell: write: %s: No such file\n", argv[1]);
+            return -1;
+        }
         return 0;
     }
-    else if (strcmp(command, "cat") == 0) {
+    else if (strcmp(command, "cat") == 0) {     // read a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: cat: Usage: read [filename]\n");
             return -1;
         }
 
         tfs_size_t filesize = get_size(argv[1]);
-        if (filesize < 0) {
+        if (filesize < 0) { // file does not exist
             printf("nanoshell: cat: %s: No such file\n", argv[1]);
             return -1;
         }
+        if (filesize == 0) return 0;    // empty file
+
         char *readbuffer = malloc(filesize + 1); // +1 for null terminator
         read_file(argv[1], readbuffer, filesize);
         readbuffer[filesize] = '\0'; // null terminate the buffer
-        printf("%s\n", readbuffer);
+        printf("%s\n", readbuffer); // we will add a newline for qol
         free(readbuffer);
         return 0;
     }
     else if (strcmp(command, "rm") == 0) {
+        if (get_argc(argv) < 2) {
+            printf("nanoshell: rm: Usage: rm [filename]\n");
+            return -1;
+        }
+        if (delete_file(argv[1]) < 0) {
+            printf("nanoshell: rm: %s: No such file\n", argv[1]);
+            return -1;
+        }
         return 0;
     }
     else {
