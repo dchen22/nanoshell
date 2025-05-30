@@ -9,8 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-// for now everything done in memory
+#define MAX_NUM_FILES 100
 
 typedef size_t tfs_size_t;
 
@@ -21,51 +20,53 @@ typedef struct tfs_file {
 } tfs_file_t;
 
 /**
- * @brief Initializes the filesystem.
+ * Initializes the filesystem.
  * 
  * @return 0 on success, -1 on failure 
  */
 int init_tfs();
 
 /**
- * @brief Create a file in the filesystem
+ * Create a file in the filesystem
+ * 
+ * @return 0 on success, -1 on failure
  */
 int create_file(char* filename);
 
-/**
- * @brief Get pointer to a file
- * 
- * @param filename Name of the file to get
- * @param fp Pointer to a pointer to store the file pointer
- */
-tfs_file_t *get_file(char* filename);
 
 /**
- * @brief Overwrite a file in the filesystem.alignas
+ * Overwrite a file in the filesystem
  * 
  * @param filename Name of the file to write to
  * @param data Pointer to data to write to the file.
  * @param data_size Size of the data to write
  * 
+ * Does not null terminate the data. This function will attempt to directly write 
+ * <data_size> bytes starting at <data>
+ * 
  * @return 0 on success, -1 on failure (e.g. file does not exist)
  */
 int write_file(char *filename, char* data, tfs_size_t data_size);
 
+
+
 /**
- * @brief Read a file from the filesystem.
+ * Read a file from the filesystem.
  * 
  * @param filename Name of the file to read
  * @param buffer Pointer to a buffer to store the file data.
- * @param size Size of the buffer.
+ * @param buffer_size Size of the buffer.
  * 
- * Does not add automatically null terminate the buffer.
+ * Does not add automatically null terminate the buffer. This function will
+ * attempt to read up to <buffer_size> bytes of file.size bytes from the file, whichever
+ * is smaller.
  * 
- * @return Number of bytes read
+ * @return Number of bytes read. Will be at most file.size
  */
 int read_file(char *filename, char* buffer, size_t buffer_size);
 
 /**
- * @brief Deletes a file from the filesystem.
+ * Deletes a file from the filesystem.
  * 
  * @param filename Name of the file to delete
  * 
@@ -74,12 +75,12 @@ int read_file(char *filename, char* buffer, size_t buffer_size);
 int delete_file(char *filename);
 
 /**
- * @brief Clean up the filesystem and free resources
+ * Clean up the filesystem and free resources
  */
 void cleanup_tfs();
 
 /**
- * @brief Clean up a specific file and free its resources
+ * Clean up a specific file and free its resources
  * 
  * @param fp Pointer to the file to clean up
  */

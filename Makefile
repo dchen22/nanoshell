@@ -3,7 +3,7 @@ CC      := gcc
 CFLAGS  := -Wall -Wextra -Wno-deprecated-declarations -g -D_XOPEN_SOURCE=700 
 
 # Source files
-SRCS    := main.c fslib/tfs.c
+SRCS    := main.c fslib/tfs.c clilib/cli.c 
 
 # Object files (same paths, but .o)
 OBJS    := $(SRCS:.c=.o)

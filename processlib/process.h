@@ -36,7 +36,7 @@ struct PCB {
 typedef struct PCB process_t;
 
 /**
- * @brief Get a pointer to PCB for a given process ID.
+ * Get a pointer to PCB for a given process ID.
  * 
  * This function retrieves the PCB from the process list using the provided process ID.
  * Return NULL if the process does not exist.
@@ -44,7 +44,7 @@ typedef struct PCB process_t;
 process_t *get_process(tid_t tid);
 
 /**
- * @brief Initializes the process list to NULL.
+ * Initializes the process list to NULL.
  * 
  * This function allocates memory for an array of PCB pointers and initializes
  * each pointer to NULL. The size of the array is defined by MAX_PROCESSES.
@@ -52,7 +52,7 @@ process_t *get_process(tid_t tid);
 void _os_init_process_list();
 
 /**
- * @brief Create and initialize PCB for a new process.
+ * Create and initialize PCB for a new process.
  * 
  * Pass in the process's stub function, the number of arguments, and the arguments themselves.
  * 
@@ -61,19 +61,19 @@ void _os_init_process_list();
 int _os_process_create(func_t stub_function);
 
 /**
- * @brief Return pointer to current process.
+ * Return pointer to current process.
  */
 process_t *get_current_process();
 
 /**
- * @brief Initialize the state data of process with the given process ID.
+ * Initialize the state data of process with the given process ID.
  * 
  * Returns 0 on success, or -ERRNO on failure.
  */
 int _os_process_init(tid_t tid, func_t stub_function);
 
 /**
- * @brief Exit the process with the given process ID.
+ * Exit the process with the given process ID.
  * 
  * @param tid The process ID of the process to exit.
  * @return Returns 0 on success, or -ERRNO on failure.
@@ -81,7 +81,7 @@ int _os_process_init(tid_t tid, func_t stub_function);
 void _os_process_exit(tid_t tid);
 
 /**
- * @brief Free all processs in the process list.
+ * Free all processs in the process list.
  * 
  * This function iterates through the process list and frees each PCB that is not NULL.
  * It is used to clean up resources when the program is terminating.
@@ -89,28 +89,28 @@ void _os_process_exit(tid_t tid);
 void free_all_processs();
 
 /**
- * @brief Create a process scheduler queue.
+ * Create a process scheduler queue.
  * 
  * @return Returns 0 on success, or -ERRNO on failure.
  */
 int scheduler_queue_create();
 
 /**
- * @brief Clean exit function.
+ * Clean exit function.
  * 
  * Return exit code
  */
 int _os_clean_exit(int exit_code);
 
 /**
- * @brief Yield the current process.
+ * Yield the current process.
  * 
  * Next process in the queue will be run
  */
 void process_yield();
 
 /**
- * @brief Execute process stub function
+ * Execute process stub function
  */
 void process_execute_stub();
 

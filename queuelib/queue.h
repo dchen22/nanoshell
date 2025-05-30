@@ -74,12 +74,12 @@ node_item_t * queue_remove(fifo_queue_t * queue, unsigned int id);
 int queue_count(fifo_queue_t * queue);
 
 /**
- * @brief Prints the contents of the queue.
+ * Prints the contents of the queue.
  */
 void queue_print(fifo_queue_t * queue);
 
 /**
- * @brief Return whether queue is empty
+ * Return whether queue is empty
  */
 bool queue_is_empty(fifo_queue_t * queue);
 

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define MAX_NUM_FILES 100   // custom limit for this test
+
 int main() {
     // initialize the filesystem
     if (init_tfs() != 0) {
@@ -67,6 +69,27 @@ int main() {
     // try to create one more file
     if (create_file("file101") == 0) {
         printf("Created 101th file, which exceeds max number of files\n");
+        cleanup_tfs();
+        return -1;
+    }
+
+    // try to delete a file
+    if (delete_file("file50") != 0) {
+        printf("Failed to delete file50\n");
+        cleanup_tfs();
+        return -1;
+    }
+
+    // ensure that file50 is deleted
+    if (read_file("file50", temp_data, 0) >= 0) {
+        printf("File50 still exists after deletion\n");
+        cleanup_tfs();
+        return -1;
+    }
+
+    // now try to create a new file
+    if (create_file("file102") != 0) {
+        printf("Failed to create file102 after deleting file50\n");
         cleanup_tfs();
         return -1;
     }

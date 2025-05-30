@@ -4,7 +4,7 @@
 #include "fs.h"
 
 /**
- * @brief Initializes the filesystem disk.
+ * Initializes the filesystem disk.
  * 
  * @param fs Pointer to the filesystem context 
  * @param size Size of the disk in bytes

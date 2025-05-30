@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#define MAX_NUM_FILES 100
 
 static tfs_file_t *files[MAX_NUM_FILES];    // file pointers
 static size_t num_files = 0;        
@@ -41,8 +40,14 @@ int cleanup_file(tfs_file_t *fp) {
 
 
 
-
-tfs_file_t *get_file(char *filename) {
+/**
+ * Get pointer to a file
+ * 
+ * @param filename Name of the file to get
+ * 
+ * @return Pointer to file if found, NULL otherwise
+ */
+static tfs_file_t *get_file(char *filename) {
     if (filename == NULL) return NULL;
 
     // iterate through filelist and compare filenames
@@ -97,9 +102,8 @@ int read_file(char *filename, char *buffer, tfs_size_t buffer_size) {
     tfs_file_t *fp = get_file(filename);
     if (fp == NULL || buffer == NULL) return -1;    
 
-    // empty file
+    // empty file, do nothing
     if (fp->data == NULL) {
-        memcpy(buffer, 0, buffer_size); // copy empty string
         return 0;
     }
 
