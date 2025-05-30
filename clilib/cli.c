@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "../fslib/tfs.h"
 
 
 char **split_line(char *line) {
@@ -30,25 +31,80 @@ char **split_line(char *line) {
 
 
 
-int parse_command(char **args) {
-    if (args[0] == NULL) {
+int parse_command(char **argv) {
+    if (argv[0] == NULL) {
         return 0;
     }
-    char *command = args[0];    // command must be first argument
+    char *command = argv[0];    // command must be first argument
 
-    // lookup commands 
+    // command table 
     if (strcmp(command, "hello") == 0) {
         printf("Hello, world!\n");
         return 0;
     }
+    else if (strcmp(command, "ls") == 0) {
+        char **filelist = list_files();
+
+        size_t index = 0;
+        while (filelist[index] != NULL) {
+            printf("%s\n", filelist[index]);
+
+            // free the filename pointer
+            free(filelist[index]);
+
+            index++;
+        }
+        free(filelist);
+        return 0;
+    }
+    else if (strcmp(command, "touch") == 0) {
+        if (get_argc(argv) < 2) {
+            printf("nanoshell: touch: missing file operand\n");
+            return -1;
+        }
+        create_file(argv[1]);
+        return 0;
+    }
+    else if (strcmp(command, "write") == 0) {
+        if (get_argc(argv) < 3) {
+            printf("nanoshell: write: Usage: write [filename] [contents]\n");
+            return -1;
+        }
+        write_file(argv[1], argv[2], strlen(argv[2]));
+        return 0;
+    }
+    else if (strcmp(command, "cat") == 0) {
+        if (get_argc(argv) < 2) {
+            printf("nanoshell: cat: Usage: read [filename]\n");
+            return -1;
+        }
+
+        tfs_size_t filesize = get_size(argv[1]);
+        if (filesize < 0) {
+            printf("nanoshell: cat: %s: No such file\n", argv[1]);
+            return -1;
+        }
+        char *readbuffer = malloc(filesize + 1); // +1 for null terminator
+        read_file(argv[1], readbuffer, filesize);
+        readbuffer[filesize] = '\0'; // null terminate the buffer
+        printf("%s\n", readbuffer);
+        free(readbuffer);
+        return 0;
+    }
+    else if (strcmp(command, "rm") == 0) {
+        return 0;
+    }
     else {
-        printf("tinyshell: %s: command not found\n", command);
+        printf("nanoshell: %s: command not found\n", command);
         return -1;
     }
 
-    unsigned int i = 1;
-    while (args[i] != NULL) {
-        
-        i++;
+}
+
+unsigned int get_argc(char **argv) {
+    unsigned int argc = 0;
+    while (argv[argc] != NULL) {
+        argc++;
     }
+    return argc;
 }

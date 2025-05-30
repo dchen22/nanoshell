@@ -30,7 +30,7 @@ int main() {
 
         // parse user input into tokens
         parse_command(split_line(userinput));
-
+        free(userinput);  // free the user input buffer
     }
 
     cleanup_tfs();

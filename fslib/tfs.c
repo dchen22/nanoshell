@@ -157,3 +157,27 @@ int delete_file(char *filename) {
 
     return -1; // file not found
 }
+
+
+
+
+char **list_files() {
+    char **filelist = malloc((num_files + 1) * sizeof(char*)); // +1 for NULL at the end
+
+    size_t index = 0;
+    for (size_t i = 0; i < MAX_NUM_FILES; i++) {
+        if (files[i] != NULL) {
+            filelist[index] = strndup(files[i]->name, strlen(files[i]->name)); // copy filename
+        } 
+        index++;
+    }
+
+    return filelist;
+}
+
+tfs_size_t get_size(char *filename) {
+    tfs_file_t *fp = get_file(filename);
+    if (fp == NULL) return -1; // file not found
+
+    return fp->size; // return file size
+}

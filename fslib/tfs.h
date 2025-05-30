@@ -85,3 +85,21 @@ void cleanup_tfs();
  * @param fp Pointer to the file to clean up
  */
 int cleanup_file(tfs_file_t *fp);
+
+/**
+ * Get all files in the filesystem
+ * 
+ * @return Pointer to a dynamically allocated array of dynamically allocated filename pointers
+ * 
+ * The returned array is terminated with a NULL pointer.
+ */
+char **list_files();
+
+/**
+ * Get the size of a file
+ * 
+ * @param filename Name of the file to get the size of
+ * 
+ * @return Size of the file in bytes, or -1 on failure
+ */
+tfs_size_t get_size(char *filename);

@@ -9,7 +9,7 @@ SRCS    := main.c fslib/tfs.c clilib/cli.c
 OBJS    := $(SRCS:.c=.o)
 
 # The final executable
-TARGET  := tinyshell
+TARGET  := nanoshell
 
 .PHONY: all clean
 
