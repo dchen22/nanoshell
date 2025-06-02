@@ -1,6 +1,7 @@
 #include "cli.h"
 #include "../fslib/tfs.h"
-
+#include "vim.h"
+#include <termios.h>
 
 char **split_line(char *line) {
     int bufsize = TOK_BUFSIZE, pos = 0;
@@ -82,13 +83,15 @@ int parse_command(char **argv) {
             printf("nanoshell: cat: Usage: read [filename]\n");
             return -1;
         }
-
-        tfs_size_t filesize = get_size(argv[1]);
-        if (filesize < 0) { // file does not exist
+        // check if file exists
+        if (!file_exists(argv[1])) {
             printf("nanoshell: cat: %s: No such file\n", argv[1]);
             return -1;
         }
-        if (filesize == 0) return 0;    // empty file
+
+        tfs_size_t filesize = get_size(argv[1]);
+    
+        if (filesize == 0) return 0;    // empty file, do nothing
 
         char *readbuffer = malloc(filesize + 1); // +1 for null terminator
         read_file(argv[1], readbuffer, filesize);
@@ -106,6 +109,24 @@ int parse_command(char **argv) {
             printf("nanoshell: rm: %s: No such file\n", argv[1]);
             return -1;
         }
+        return 0;
+    }
+    else if (strcmp(command, "vim") == 0) { // open vim editor on a file
+        if (get_argc(argv) < 2) {
+            printf("nanoshell: vim: Usage: vim [filename]\n");
+            return -1;
+        }
+        // check if file exists, if not, create it
+        // checking if file exists could be redundant, as create_file would fail if it exists
+        if (!file_exists(argv[1])) {    
+            if (create_file(argv[1]) < 0) {
+                printf("nanoshell: vim: %s: Could not create file\n", argv[1]);
+                return -1;
+            }
+        }
+        char *vim_contents = run_editor();
+        write_file(argv[1], vim_contents, strlen(vim_contents));
+        printf("\n"); // newline after exiting vim for better formatting
         return 0;
     }
     else {

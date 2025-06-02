@@ -182,3 +182,14 @@ tfs_size_t get_size(char *filename) {
 
     return fp->size; // return file size
 }
+
+
+
+
+bool file_exists(char *filename) {
+    tfs_file_t *fp = get_file(filename);
+    if (fp == NULL) {
+        return false; // file does not exist
+    }
+    return true; // file exists
+}

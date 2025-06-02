@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #define MAX_NUM_FILES 100
 
@@ -103,3 +104,12 @@ char **list_files();
  * @return Size of the file in bytes, or -1 on failure
  */
 tfs_size_t get_size(char *filename);
+
+/**
+ * Check whether file exists in filesystem.
+ * 
+ * @param filename Name of the file to check
+ * 
+ * @return true if file exists, false otherwise
+ */
+bool file_exists(char *filename);
