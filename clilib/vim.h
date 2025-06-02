@@ -24,6 +24,6 @@ void disable_raw_mode();
  * buffer (PRINTABLE ASCII only, plus Backspace), and exits on ESC.
  * Restores the terminal before returning.
  * 
- * @param buf Pointer to buffer where input will be stored.
+ * @param initial_content Pointer to buffer of initial content to display in editor.
  */
-char *run_editor(void);
+char *run_editor(char *initial_content);

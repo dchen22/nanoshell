@@ -1,5 +1,5 @@
 #include "vim.h"
-
+#include <string.h>
 
 /* escape sequences to clear screen and reposition cursor to (1,1) */
 #define CLEAR_SCREEN()   write(STDOUT_FILENO, "\x1b[2J", 4)
@@ -93,10 +93,22 @@ static int read_key(void) {
 
 
 
-char *run_editor(void) {
+char *run_editor(char *initial_content) {
     enable_raw_mode();
     /* Ensure raw‐mode is undone on exit */
     atexit(disable_raw_mode);
+
+    if (initial_content != NULL) {
+        /* Copy initial content into the buffer */
+        buf_len = strnlen(initial_content, MAX_BUFFER - 1);
+        if (buf_len >= MAX_BUFFER) {
+            buf_len = MAX_BUFFER - 1; // ensure we don't overflow
+        }
+        memcpy(buffer, initial_content, buf_len);
+        buffer[buf_len] = '\0'; // null-terminate the buffer
+    } else {
+        buf_len = 0; // start with an empty buffer
+    }
 
     /* Initial draw (empty buffer) */
     refresh_screen();

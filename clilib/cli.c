@@ -124,7 +124,16 @@ int parse_command(char **argv) {
                 return -1;
             }
         }
-        char *vim_contents = run_editor();
+        // read content of file into buffer
+        char *file_content = malloc(get_size(argv[1]) + 1); // +1 for null terminator
+        if (read_file(argv[1], file_content, get_size(argv[1])) < 0) {
+            printf("nanoshell: vim: %s: Could not read file\n", argv[1]);
+            free(file_content);
+            return -1;
+        }
+        file_content[get_size(argv[1])] = '\0'; // null terminate the buffer
+        // start editor and write file contents to it
+        char *vim_contents = run_editor(file_content);
         write_file(argv[1], vim_contents, strlen(vim_contents));
         printf("\n"); // newline after exiting vim for better formatting
         return 0;
