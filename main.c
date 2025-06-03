@@ -53,16 +53,16 @@ void run_CLI(void *args) {
         parse_command_args->argv = split_line(userinput);  // split the user input into tokens
         process_create(parse_command, parse_command_args);
         process_yield();
-        if (parse_command_args->retval == 1) { // if the command was "exit"
-            free(userinput);    // free user input buffer
-            free(parse_command_args->argv); // free the argument array
-            free(parse_command_args);   // free the args struct
-            return; 
-        }
+
+        int retval = parse_command_args->retval; // get the return value of parsing the command
 
         free(userinput);  // free the user input buffer
         free(parse_command_args->argv); // free the argument array
         free(parse_command_args);   // free the args struct
+
+        if (retval == 1) { // if the command was "exit"
+            return; 
+        }
         
     }
 
