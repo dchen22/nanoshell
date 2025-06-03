@@ -46,7 +46,7 @@ typedef struct PCB process_t;
 process_t *get_process(procid_t pid);
 
 /**
- * Initializes the process library.
+ * Initializes the process library. Does not run any processes. 
  * 
  * @param main_stub_function The function to be executed by the main process. Should be a function that runs the main loop of the entire OS
  * @param args Pointer to a struct with arguments to be passed to the main process's stub function.
@@ -130,5 +130,19 @@ void process_execute_stub();
  */
 void process_schedule(procid_t tid);
 
+/**
+ * Check if the scheduler queue is empty.
+ * 
+ * @return Returns true if the queue is empty, false otherwise.
+ */
+bool process_scheduler_is_empty();
+
+
+/**
+ * Should be run by scheduler.asm
+ * 
+ * Run the next process in the scheduler queue.
+ */
+void scheduler_run_next_process();
 
 

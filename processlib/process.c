@@ -138,6 +138,8 @@ void process_exit(procid_t pid) {
 
     // decrement process count
     process_count--;
+
+    printf("Process %d exited\n", pid);
 }
 
 void free_all_processs() {
@@ -165,6 +167,8 @@ int cleanup_processlib(int exit_code) {
     while (scheduler_queue->usage > 0) {
         queue_pop(scheduler_queue);
     }
+    
+
     queue_destroy(scheduler_queue);
 
     printf("Successfully cleaned up processes system.\n");
@@ -232,6 +236,27 @@ void process_schedule(procid_t pid) {
     queue_push(scheduler_queue, process_ptr);
 }
 
+bool process_scheduler_is_empty() {
+    return queue_is_empty(scheduler_queue);
+}
+
+void scheduler_run_next_process() {
+    current_process = queue_pop(scheduler_queue); // get next process in queue
+    if (current_process == NULL) {
+        printf("No process to run\n");
+        return;
+    }
+    swapcontext(&main_context, &current_process->context);  // context switch to the next process
+
+    // check if process has exited
+    if (current_process->state == PROCESS_EXITED) {
+        process_exit(current_process->id);
+    } else {
+        // reschedule process that just ran
+        queue_push(scheduler_queue, current_process);
+    }
+}
+
 int init_processlib(void (*main_stub_function)(void *), void *args) {
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_list[i] = NULL;
@@ -252,18 +277,18 @@ int init_processlib(void (*main_stub_function)(void *), void *args) {
         printf("Failed to create root process\n");
         return -1;
     }
-
     
 
-    current_process = queue_pop(scheduler_queue);    // get main process to run
-    pid_t current_process_id = current_process->id;   // get its ID
-    if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
-        printf("Failed to run main process\n");
-        return -1;
-    }
+    // // TODO: i think we are jumping back to main process erroneously
+    // current_process = queue_pop(scheduler_queue);    // get main process to run
+    // pid_t current_process_id = current_process->id;   // get its ID
+    // if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
+    //     printf("Failed to run main process\n");
+    //     return -1;
+    // }
     
-    printf("Running process %d\n", current_process_id);
-    swapcontext(&main_context, &current_process->context);
+    // printf("Running process %d\n", current_process_id);
+    // swapcontext(&main_context, &current_process->context);
 
     return 0;
 }

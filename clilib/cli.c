@@ -32,11 +32,11 @@ char **split_line(char *line) {
 
 
 
-void parse_command(void *args) {
-    parse_command_args_t *params = (parse_command_args_t *)args;
+void parse_command(void *params_struct) {
+    parse_command_args_t *params = (parse_command_args_t *)params_struct;
     char **argv = params->argv; // array of arguments
     if (argv[0] == NULL) {
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
@@ -45,8 +45,8 @@ void parse_command(void *args) {
     // command table 
     if (strcmp(command, "hello") == 0) {        // hello command
         printf("Hello, world!\n");
-        free(args); // free the args struct
-        params->retval = 0; // set return value to 0
+        free(params_struct); // free the args struct
+        // params->retval = 0; // set return value to 0
         return;
     }
     else if (strcmp(command, "ls") == 0) {      // list files
@@ -64,50 +64,50 @@ void parse_command(void *args) {
             index++;
         }
         free(filelist);
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
     else if (strcmp(command, "touch") == 0) {   // create a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: touch: missing file operand\n");
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
         create_file(argv[1]);
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
     else if (strcmp(command, "write") == 0) {   // write to a file
         if (get_argc(argv) < 3) {
             printf("nanoshell: write: Usage: write [filename] [contents]\n");
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
         if (write_file(argv[1], argv[2], strlen(argv[2])) < 0) {
             printf("nanoshell: write: %s: No such file\n", argv[1]);
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
     else if (strcmp(command, "cat") == 0) {     // read a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: cat: Usage: read [filename]\n");
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
         // check if file exists
         if (!file_exists(argv[1])) {
             printf("nanoshell: cat: %s: No such file\n", argv[1]);
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
@@ -115,7 +115,7 @@ void parse_command(void *args) {
         tfs_size_t filesize = get_size(argv[1]);
     
         if (filesize == 0)  {
-            free(args); // free the args struct 
+            free(params_struct); // free the args struct 
             params->retval = 0;    // empty file, do nothing
             return;
         }
@@ -125,31 +125,31 @@ void parse_command(void *args) {
         readbuffer[filesize] = '\0'; // null terminate the buffer
         printf("%s\n", readbuffer); // we will add a newline for qol
         free(readbuffer);
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
     else if (strcmp(command, "rm") == 0) {
         if (get_argc(argv) < 2) {
             printf("nanoshell: rm: Usage: rm [filename]\n");
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
         if (delete_file(argv[1]) < 0) {
             printf("nanoshell: rm: %s: No such file\n", argv[1]);
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
     else if (strcmp(command, "vim") == 0) { // open vim editor on a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: vim: Usage: vim [filename]\n");
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
@@ -158,7 +158,7 @@ void parse_command(void *args) {
         if (!file_exists(argv[1])) {    
             if (create_file(argv[1]) < 0) {
                 printf("nanoshell: vim: %s: Could not create file\n", argv[1]);
-                free(args); // free the args struct
+                free(params_struct); // free the args struct
                 params->retval = -1;
                 return;
             }
@@ -168,7 +168,7 @@ void parse_command(void *args) {
         if (read_file(argv[1], file_content, get_size(argv[1])) < 0) {
             printf("nanoshell: vim: %s: Could not read file\n", argv[1]);
             free(file_content);
-            free(args); // free the args struct
+            free(params_struct); // free the args struct
             params->retval = -1;
             return;
         }
@@ -177,7 +177,7 @@ void parse_command(void *args) {
         char *vim_contents = run_editor(file_content);
         write_file(argv[1], vim_contents, strlen(vim_contents));
         printf("\n"); // newline after exiting vim for better formatting
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = 0;
         return;
     }
@@ -187,7 +187,7 @@ void parse_command(void *args) {
     }
     else {
         printf("nanoshell: %s: command not found\n", command);
-        free(args); // free the args struct
+        free(params_struct); // free the args struct
         params->retval = -1;
         return;
     }

@@ -18,6 +18,11 @@ int main() {
         return -1;
     }
 
+    // main scheduler loop
+    while (!process_scheduler_is_empty()) {
+        scheduler_run_next_process();
+    }
+
     cleanup_tfs();
     cleanup_processlib(0);
     printf("Exiting shell\n\n");
@@ -48,19 +53,11 @@ void run_CLI(void *args) {
         parse_command_args->argv = split_line(userinput);  // split the user input into tokens
         process_create(parse_command, parse_command_args);
         process_yield();
-
         if (parse_command_args->retval == 1) { // if the command was "exit"
             free(userinput);    // free user input buffer
-            break; 
+            // free(parse_command_args);
+            return; 
         }
-        
-        // // parse user input into tokens
-        // if (parse_command(parse_command_args) == 1) {
-            
-        //     free(userinput);  // free the user input buffer
-
-        //     return;
-        // }; 
 
         free(userinput);  // free the user input buffer
 
