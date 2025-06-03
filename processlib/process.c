@@ -246,6 +246,7 @@ void scheduler_run_next_process() {
         printf("No process to run\n");
         return;
     }
+    printf("Running process %d\n", current_process->id);
     swapcontext(&main_context, &current_process->context);  // context switch to the next process
 
     // check if process has exited
