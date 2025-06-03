@@ -45,12 +45,11 @@ typedef struct PCB process_t;
 process_t *get_process(tid_t tid);
 
 /**
- * Initializes the process list to NULL.
+ * Initializes the process library.
  * 
- * This function allocates memory for an array of PCB pointers and initializes
- * each pointer to NULL. The size of the array is defined by MAX_PROCESSES.
+ * @return 0 on success, -1 on failure
  */
-void init_process_list();
+int init_processlib();
 
 /**
  * Create and initialize PCB for a new process.
@@ -108,7 +107,7 @@ int scheduler_queue_create();
  * 
  * Return exit code
  */
-int clean_exit(int exit_code);
+int cleanup_processlib(int exit_code);
 
 /**
  * Yield the current process.

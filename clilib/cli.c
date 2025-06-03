@@ -32,8 +32,11 @@ char **split_line(char *line) {
 
 
 
-int parse_command(char **argv) {
+int parse_command(void *args) {
+    parse_command_args_t *parse_args = (parse_command_args_t *)args;
+    char **argv = parse_args->argv; // array of arguments
     if (argv[0] == NULL) {
+        free(args); // free the args struct
         return 0;
     }
     char *command = argv[0];    // command must be first argument
@@ -41,9 +44,11 @@ int parse_command(char **argv) {
     // command table 
     if (strcmp(command, "hello") == 0) {        // hello command
         printf("Hello, world!\n");
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "ls") == 0) {      // list files
+        // process_create(list_files, NULL);
         char **filelist = list_files();
 
         size_t index = 0;
@@ -57,63 +62,79 @@ int parse_command(char **argv) {
             index++;
         }
         free(filelist);
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "touch") == 0) {   // create a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: touch: missing file operand\n");
+            free(args); // free the args struct
             return -1;
         }
         create_file(argv[1]);
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "write") == 0) {   // write to a file
         if (get_argc(argv) < 3) {
             printf("nanoshell: write: Usage: write [filename] [contents]\n");
+            free(args); // free the args struct
             return -1;
         }
         if (write_file(argv[1], argv[2], strlen(argv[2])) < 0) {
             printf("nanoshell: write: %s: No such file\n", argv[1]);
+            free(args); // free the args struct
             return -1;
         }
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "cat") == 0) {     // read a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: cat: Usage: read [filename]\n");
+            free(args); // free the args struct
             return -1;
         }
         // check if file exists
         if (!file_exists(argv[1])) {
             printf("nanoshell: cat: %s: No such file\n", argv[1]);
+            free(args); // free the args struct
             return -1;
         }
 
         tfs_size_t filesize = get_size(argv[1]);
     
-        if (filesize == 0) return 0;    // empty file, do nothing
+        if (filesize == 0)  {
+            free(args); // free the args struct 
+            return 0;    // empty file, do nothing
+        }
 
         char *readbuffer = malloc(filesize + 1); // +1 for null terminator
         read_file(argv[1], readbuffer, filesize);
         readbuffer[filesize] = '\0'; // null terminate the buffer
         printf("%s\n", readbuffer); // we will add a newline for qol
         free(readbuffer);
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "rm") == 0) {
         if (get_argc(argv) < 2) {
             printf("nanoshell: rm: Usage: rm [filename]\n");
+            free(args); // free the args struct
             return -1;
         }
         if (delete_file(argv[1]) < 0) {
             printf("nanoshell: rm: %s: No such file\n", argv[1]);
+            free(args); // free the args struct
             return -1;
         }
+        free(args); // free the args struct
         return 0;
     }
     else if (strcmp(command, "vim") == 0) { // open vim editor on a file
         if (get_argc(argv) < 2) {
             printf("nanoshell: vim: Usage: vim [filename]\n");
+            free(args); // free the args struct
             return -1;
         }
         // check if file exists, if not, create it
@@ -121,6 +142,7 @@ int parse_command(char **argv) {
         if (!file_exists(argv[1])) {    
             if (create_file(argv[1]) < 0) {
                 printf("nanoshell: vim: %s: Could not create file\n", argv[1]);
+                free(args); // free the args struct
                 return -1;
             }
         }
@@ -129,6 +151,7 @@ int parse_command(char **argv) {
         if (read_file(argv[1], file_content, get_size(argv[1])) < 0) {
             printf("nanoshell: vim: %s: Could not read file\n", argv[1]);
             free(file_content);
+            free(args); // free the args struct
             return -1;
         }
         file_content[get_size(argv[1])] = '\0'; // null terminate the buffer
@@ -136,10 +159,12 @@ int parse_command(char **argv) {
         char *vim_contents = run_editor(file_content);
         write_file(argv[1], vim_contents, strlen(vim_contents));
         printf("\n"); // newline after exiting vim for better formatting
+        free(args); // free the args struct
         return 0;
     }
     else {
         printf("nanoshell: %s: command not found\n", command);
+        free(args); // free the args struct
         return -1;
     }
 

@@ -34,11 +34,7 @@ process_t *get_current_process() {
     return current_process;
 }
 
-void init_process_list() {
-    for (int i = 0; i < MAX_PROCESSES; i++) {
-        process_list[i] = NULL;
-    }
-}
+
 
 int process_create(void (*stub_function)(void *), void *args) {
     // check if process list is full
@@ -162,7 +158,7 @@ int scheduler_queue_create() {
     return 0;
 }
 
-int clean_exit(int exit_code) {
+int cleanup_processlib(int exit_code) {
     printf("Cleaning up...\n");
     // free all processs
     free_all_processs();
@@ -224,21 +220,21 @@ void schedule() {
 
 }
 
+int init_processlib() {
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        process_list[i] = NULL;
+    }
 
-int main() {
-    // initialize process list
-    init_process_list();
-    
     // create scheduler queue. Exit on failure
     if (scheduler_queue_create() < 0) {
         printf("Failed to create scheduler queue\n");
-        return clean_exit(-1);
+        return cleanup_processlib(-1);
     }
 
     // create process0
     if (process_create(fill_process_list, NULL) < 0) {
         printf("Failed to create root process\n");
-        return clean_exit(-1);
+        return cleanup_processlib(-1);
     }
 
     // initialize scheduler context
@@ -246,40 +242,49 @@ int main() {
 
     printf("\nSCHEDULER RUNNING\n");
 
-    // set up timer interrupt
-    // timer_interrupt();
+    return 0;
+}
 
-    // process0 will create other processs
-    process_t *process0 = get_process(0);
-    if (process0 == NULL) {
-        printf("Process 0 not found\n");
-        return clean_exit(-1);
-    }
 
-    // run processs
-    while (!queue_is_empty(scheduler_queue)) {
-        current_process = queue_pop(scheduler_queue);    // get next process to run
-        tid_t current_process_id = current_process->id;   // get its ID
-        if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
-            printf("No more processs to run\n");
-            return clean_exit(-1);
-        }
-        printf("Running process %d\n", current_process->id);
-        swapcontext(&main_context, &current_process->context);
+// int main() {
 
-        printf("\nSCHEDULER RUNNING\n");
+    
+    
 
-        // check if process has exited
-        if (current_process->state == PROCESS_EXITED) {
-            process_exit(current_process_id);
-        } else {
-            // reschedule process that just ran
-            queue_push(scheduler_queue, current_process);
-        }
+//     // set up timer interrupt
+//     // timer_interrupt();
+
+//     // process0 will create other processs
+//     process_t *process0 = get_process(0);
+//     if (process0 == NULL) {
+//         printf("Process 0 not found\n");
+//         return cleanup_processlib(-1);
+//     }
+
+//     // run processs
+//     while (!queue_is_empty(scheduler_queue)) {
+//         current_process = queue_pop(scheduler_queue);    // get next process to run
+//         tid_t current_process_id = current_process->id;   // get its ID
+//         if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
+//             printf("No more processs to run\n");
+//             return cleanup_processlib(-1);
+//         }
+//         printf("Running process %d\n", current_process->id);
+//         swapcontext(&main_context, &current_process->context);
+
+//         printf("\nSCHEDULER RUNNING\n");
+
+//         // check if process has exited
+//         if (current_process->state == PROCESS_EXITED) {
+//             process_exit(current_process_id);
+//         } else {
+//             // reschedule process that just ran
+//             queue_push(scheduler_queue, current_process);
+//         }
 
         
-    }
+//     }
    
-    // Free all processs
-    return clean_exit(0);
-}
+//     // Free all processs
+//     return cleanup_processlib(0);
+// }

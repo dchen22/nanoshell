@@ -23,14 +23,16 @@ char **split_line(char *line);
 /**
  * Read an array of arguments and handle the command
  * 
- * @param argv Array of arguments
+ * @param args Pointer to struct containing the array of arguments
  * 
  * The array <argv> must be terminated with NULL. The first element of <argv> must be the commandname
  * 
  * @return 0 on success, -1 on failure
  */
-int parse_command(char **argv);
-
+int parse_command(void *args);
+typedef struct parse_command_args {
+    char **argv; // array of arguments
+} parse_command_args_t;
 
 
 /**
