@@ -1,5 +1,6 @@
 #include "fslib/tfs.h"
 #include "clilib/cli.h"
+#include "processlib/process.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -10,6 +11,26 @@ int main() {
         printf("Failed to initialize filesystem\n");
         return -1;
     }
+
+    // initialize the process library
+    if (init_processlib(run_CLI, NULL) != 0) {
+        printf("Failed to initialize process library\n");
+        return -1;
+    }
+
+    // main scheduler loop
+    while (!process_scheduler_is_empty()) {
+        scheduler_run_next_process();
+    }
+
+    cleanup_tfs();
+    cleanup_processlib(0);
+    printf("Exiting shell\n\n");
+    return 0;
+}
+
+void run_CLI(void *args) {
+    (void)args;  // unused parameter
 
     fflush(stdout);
 
@@ -25,14 +46,24 @@ int main() {
         if (nread == -1) {
             fprintf(stderr, "Error reading input\n");
             free(userinput);
-            return -1;
+            return;
+        }
+        // create a new process to handle the user input
+        parse_command_args_t *parse_command_args = malloc(sizeof(parse_command_args_t));
+        parse_command_args->argv = split_line(userinput);  // split the user input into tokens
+        process_create(parse_command, parse_command_args);
+        process_yield();
+        if (parse_command_args->retval == 1) { // if the command was "exit"
+            free(userinput);    // free user input buffer
+            free(parse_command_args->argv); // free the argument array
+            free(parse_command_args);   // free the args struct
+            return; 
         }
 
-        // parse user input into tokens
-        parse_command(split_line(userinput));
         free(userinput);  // free the user input buffer
+        free(parse_command_args->argv); // free the argument array
+        free(parse_command_args);   // free the args struct
+        
     }
 
-    cleanup_tfs();
-    return 0;
 }

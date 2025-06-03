@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "ucontext.h": "c",
+        "stdarg.h": "c"
+    }
+}

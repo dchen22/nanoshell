@@ -64,7 +64,7 @@ int write_file(char *filename, char* data, tfs_size_t data_size);
  * 
  * @return Number of bytes read. Will be at most file.size
  */
-int read_file(char *filename, char* buffer, size_t buffer_size);
+tfs_size_t read_file(char *filename, char* buffer, size_t buffer_size);
 
 /**
  * Deletes a file from the filesystem.

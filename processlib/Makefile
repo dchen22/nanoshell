@@ -3,7 +3,7 @@ CC      := gcc
 CFLAGS  := -Wall -Wextra -Wno-deprecated-declarations -g -D_XOPEN_SOURCE=700 
 
 # Source files
-SRCS    := process.c basic_functions.c ../queuelib/queue.c
+SRCS    := main.c process.c basic_functions.c ../queuelib/queue.c
 
 # Object files (same paths, but .o)
 OBJS    := $(SRCS:.c=.o)

@@ -25,5 +25,7 @@ void disable_raw_mode();
  * Restores the terminal before returning.
  * 
  * @param initial_content Pointer to buffer of initial content to display in editor.
+ * 
+ * @return Pointer to the buffer containing the final (potentially modified) content of the editor.
  */
 char *run_editor(char *initial_content);
