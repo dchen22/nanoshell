@@ -99,12 +99,9 @@ int create_file(char* filename) {
 
 
 
-int read_file(char *filename, char *buffer, tfs_size_t buffer_size) {
+tfs_size_t read_file(char *filename, char *buffer, tfs_size_t buffer_size) {
     tfs_file_t *fp = get_file(filename);
-    if (fp == NULL || buffer == NULL) return -1;    
-
-    // empty file, do nothing
-    if (fp->data == NULL) {
+    if (fp == NULL || buffer == NULL || fp->data == NULL) { // either file not found, buffer not found, file is empty
         return 0;
     }
 

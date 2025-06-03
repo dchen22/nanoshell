@@ -55,12 +55,14 @@ void run_CLI(void *args) {
         process_yield();
         if (parse_command_args->retval == 1) { // if the command was "exit"
             free(userinput);    // free user input buffer
-            // free(parse_command_args);
+            free(parse_command_args->argv); // free the argument array
+            free(parse_command_args);   // free the args struct
             return; 
         }
 
         free(userinput);  // free the user input buffer
-
+        free(parse_command_args->argv); // free the argument array
+        free(parse_command_args);   // free the args struct
         
     }
 

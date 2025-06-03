@@ -22,6 +22,8 @@ void run_CLI(void *args);
  * @param line The string to split.
  * 
  * @return A dynamically allocated array of pointers to each token in <line>
+ * 
+ * Only the returned array <tokens> needs to be freed, DO NOT free individual tokens <tokens[i]>
  */
 char **split_line(char *line);
 
