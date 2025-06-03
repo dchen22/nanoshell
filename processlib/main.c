@@ -36,7 +36,7 @@ int main() {
     // run processs
     while (!queue_is_empty(scheduler_queue)) {
         current_process = queue_pop(scheduler_queue);    // get next process to run
-        tid_t current_process_id = current_process->id;   // get its ID
+        procid_t current_process_id = current_process->id;   // get its ID
         if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
             printf("No more processs to run\n");
             return cleanup_processlib(-1);

@@ -12,6 +12,11 @@
 #define MAX_READ_SIZE 268435456 // 256 MiB
 
 /**
+ * Run the nanoshell CLI
+ */
+void run_CLI(void *args);
+
+/**
  * Splits a string into tokens based on delimiters.
  * 
  * @param line The string to split.
@@ -27,11 +32,12 @@ char **split_line(char *line);
  * 
  * The array <argv> must be terminated with NULL. The first element of <argv> must be the commandname
  * 
- * @return 0 on success, -1 on failure
+ * @return (args.retval): 0 on success, -1 on failure, 1 on exit
  */
-int parse_command(void *args);
+void parse_command(void *args);
 typedef struct parse_command_args {
     char **argv; // array of arguments
+    int retval; // return value of the command
 } parse_command_args_t;
 
 

@@ -12,7 +12,6 @@
 #include <stdarg.h>
 
 
-
 // array of PCBs pointers
 process_t *process_list[MAX_PROCESSES];
 // scheduler queue
@@ -24,10 +23,10 @@ process_t *current_process = NULL;
 
 unsigned int process_count = 0;
 
-process_t *get_process(tid_t tid) {
-    assert(tid < MAX_PROCESSES);
-    assert(tid >= 0);
-    return process_list[tid];
+process_t *get_process(procid_t pid) {
+    assert(pid < MAX_PROCESSES);
+    assert(pid >= 0);
+    return process_list[pid];
 }
 
 process_t *get_current_process() {
@@ -75,12 +74,12 @@ int process_create(void (*stub_function)(void *), void *args) {
     return -TOO_MANY_PROCESSES;
 }
 
-int process_init(tid_t tid, func_t stub_function, void *args) {
-    assert(get_process(tid) != NULL);
-    process_t *process_ptr = get_process(tid);
+int process_init(procid_t pid, void (*stub_function)(void *), void *args) {
+    assert(get_process(pid) != NULL);
+    process_t *process_ptr = get_process(pid);
     
     // initialize the process
-    process_ptr->id = tid;
+    process_ptr->id = pid;
     process_ptr->stub_func = stub_function; 
     process_ptr->args = args; 
     process_ptr->state = PROCESS_ALIVE; // set process state to alive
@@ -126,16 +125,16 @@ void process_execute_stub() {
     // TODO: process should return a value
 }
 
-void process_exit(tid_t tid) {
-    assert(tid < MAX_PROCESSES);
-    assert(tid >= 0);
-    assert(get_process(tid) != NULL);
+void process_exit(procid_t pid) {
+    assert(pid < MAX_PROCESSES);
+    assert(pid >= 0);
+    assert(get_process(pid) != NULL);
 
     // free the process
     free(current_process);
 
     // set the slot to NULL
-    process_list[tid] = NULL;
+    process_list[pid] = NULL;
 
     // decrement process count
     process_count--;
@@ -216,11 +215,24 @@ void timer_interrupt() {
     setitimer(ITIMER_REAL, &timer, NULL); // set up timer
 }
 
-void schedule() {
+void process_schedule(procid_t pid) {
+    assert(pid < MAX_PROCESSES);
+    assert(pid >= 0);
+    process_t *process_ptr = get_process(pid);
+    if (process_ptr == NULL) {
+        printf("Process %d not found\n", pid);
+        return;
+    }
 
+    if (process_ptr->inQueue) {
+        printf("Process %d is already in the queue\n", pid);
+        return;
+    }
+
+    queue_push(scheduler_queue, process_ptr);
 }
 
-int init_processlib() {
+int init_processlib(void (*main_stub_function)(void *), void *args) {
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_list[i] = NULL;
     }
@@ -228,22 +240,36 @@ int init_processlib() {
     // create scheduler queue. Exit on failure
     if (scheduler_queue_create() < 0) {
         printf("Failed to create scheduler queue\n");
-        return cleanup_processlib(-1);
+        return -1;
     }
-
-    // create process0
-    if (process_create(fill_process_list, NULL) < 0) {
-        printf("Failed to create root process\n");
-        return cleanup_processlib(-1);
-    }
-
     // initialize scheduler context
     getcontext(&main_context);
 
     printf("\nSCHEDULER RUNNING\n");
 
+    // create process0 to run main OS loop 
+    if (process_create(main_stub_function, args) < 0) {
+        printf("Failed to create root process\n");
+        return -1;
+    }
+
+    
+
+    current_process = queue_pop(scheduler_queue);    // get main process to run
+    pid_t current_process_id = current_process->id;   // get its ID
+    if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
+        printf("Failed to run main process\n");
+        return -1;
+    }
+    
+    printf("Running process %d\n", current_process_id);
+    swapcontext(&main_context, &current_process->context);
+
     return 0;
 }
+
+
+
 
 
 // int main() {
@@ -264,7 +290,7 @@ int init_processlib() {
 //     // run processs
 //     while (!queue_is_empty(scheduler_queue)) {
 //         current_process = queue_pop(scheduler_queue);    // get next process to run
-//         tid_t current_process_id = current_process->id;   // get its ID
+//         pid_t current_process_id = current_process->id;   // get its ID
 //         if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
 //             printf("No more processs to run\n");
 //             return cleanup_processlib(-1);

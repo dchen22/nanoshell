@@ -13,10 +13,19 @@ int main() {
     }
 
     // initialize the process library
-    if (init_processlib() != 0) {
+    if (init_processlib(run_CLI, NULL) != 0) {
         printf("Failed to initialize process library\n");
         return -1;
     }
+
+    cleanup_tfs();
+    cleanup_processlib(0);
+    printf("Exiting shell\n\n");
+    return 0;
+}
+
+void run_CLI(void *args) {
+    (void)args;  // unused parameter
 
     fflush(stdout);
 
@@ -32,22 +41,30 @@ int main() {
         if (nread == -1) {
             fprintf(stderr, "Error reading input\n");
             free(userinput);
-            cleanup_tfs();
-            cleanup_processlib(0);
-            return -1;
+            return;
         }
         // create a new process to handle the user input
         parse_command_args_t *parse_command_args = malloc(sizeof(parse_command_args_t));
         parse_command_args->argv = split_line(userinput);  // split the user input into tokens
-        // process_create(parse_command, args);
-        // TODO: process stub can be parse_command
+        process_create(parse_command, parse_command_args);
+        process_yield();
 
-        // parse user input into tokens
-        parse_command(parse_command_args);
+        if (parse_command_args->retval == 1) { // if the command was "exit"
+            free(userinput);    // free user input buffer
+            break; 
+        }
+        
+        // // parse user input into tokens
+        // if (parse_command(parse_command_args) == 1) {
+            
+        //     free(userinput);  // free the user input buffer
+
+        //     return;
+        // }; 
+
         free(userinput);  // free the user input buffer
+
+        
     }
 
-    cleanup_tfs();
-    cleanup_processlib(0);
-    return 0;
 }
