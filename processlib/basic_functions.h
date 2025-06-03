@@ -6,28 +6,20 @@
 void print_hello_world();
 
 /**
- * Generate a specified number of processs.
+ * Print a specified number of integers.
  */
-void generate_processs(unsigned int num_processs);
+void generate_numbers(void *args);
+typedef struct generate_numbers_args {
+    unsigned int num_integers;
+} generate_numbers_args_t;
 
 /**
  * Prints identity of current process.
  */
-void print_identity();
+void print_identity(void *args);
 
-/**
- * Prints numbers from 0 up to MAX_PROCESSES.asm
- * 
- * Should be interrupted by process_yield() in the middle of printing, after printing its own ID.
- */
-void interrupted_print_to_maxprocesss();
 
 /**
  * Generate as many processs as possible
  */
-void fill_process_list();
-
-/**
- * Prints 1 million numbers to the console.
- */
-void print_1mil_nums();
+void fill_process_list(void *args);

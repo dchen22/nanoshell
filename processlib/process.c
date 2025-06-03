@@ -34,13 +34,13 @@ process_t *get_current_process() {
     return current_process;
 }
 
-void _os_init_process_list() {
+void init_process_list() {
     for (int i = 0; i < MAX_PROCESSES; i++) {
         process_list[i] = NULL;
     }
 }
 
-int _os_process_create(func_t stub_function) {
+int process_create(void (*stub_function)(void *), void *args) {
     // check if process list is full
     if (process_count >= MAX_PROCESSES) {
         printf("Process list is full, cannot create more processs\n");
@@ -59,7 +59,7 @@ int _os_process_create(func_t stub_function) {
             process_list[i] = new_process;
 
             // initialize the process
-            _os_process_init(i, stub_function);
+            process_init(i, stub_function, args);
 
             // increment process count
             process_count++;
@@ -79,13 +79,14 @@ int _os_process_create(func_t stub_function) {
     return -TOO_MANY_PROCESSES;
 }
 
-int _os_process_init(tid_t tid, func_t stub_function) {
+int process_init(tid_t tid, func_t stub_function, void *args) {
     assert(get_process(tid) != NULL);
     process_t *process_ptr = get_process(tid);
     
     // initialize the process
     process_ptr->id = tid;
-    process_ptr->stub_func = stub_function; // set to NULL for now
+    process_ptr->stub_func = stub_function; 
+    process_ptr->args = args; 
     process_ptr->state = PROCESS_ALIVE; // set process state to alive
     process_ptr->inQueue = false;
     process_ptr->ahead = NULL;
@@ -122,14 +123,14 @@ void process_execute_stub() {
     // execute the process's function
     if (current_process->stub_func != NULL) {
         // printf("Process %d executing stub\n", current_process->id);
-        current_process->stub_func();
+        current_process->stub_func(current_process->args);
     }
     // declare self as exited
     current_process->state = PROCESS_EXITED;
     // TODO: process should return a value
 }
 
-void _os_process_exit(tid_t tid) {
+void process_exit(tid_t tid) {
     assert(tid < MAX_PROCESSES);
     assert(tid >= 0);
     assert(get_process(tid) != NULL);
@@ -147,7 +148,7 @@ void _os_process_exit(tid_t tid) {
 void free_all_processs() {
     for (int i = 0; i < MAX_PROCESSES; i++) {
         if (process_list[i] != NULL) {
-            _os_process_exit(i);
+            process_exit(i);
         }
     }
 }
@@ -161,7 +162,7 @@ int scheduler_queue_create() {
     return 0;
 }
 
-int _os_clean_exit(int exit_code) {
+int clean_exit(int exit_code) {
     printf("Cleaning up...\n");
     // free all processs
     free_all_processs();
@@ -176,17 +177,19 @@ int _os_clean_exit(int exit_code) {
     return exit_code;
 }
 
-// void generate_processs(unsigned int num_processs) {
-//     for (unsigned int i = 0; i < num_processs; i++) {
-//         _os_process_create(interrupted_print_to_maxprocesss);
-//     }
-// }
 
-void fill_process_list() {
-    for (unsigned int i = 0; i < MAX_PROCESSES - 1; i++) {
-        _os_process_create(interrupted_print_to_maxprocesss);
+
+
+void fill_process_list(void *args) {
+    (void)args; // unused
+    for (unsigned int i = 1; i < MAX_PROCESSES; i++) {
+        generate_numbers_args_t *gen_nums_args = malloc(sizeof(generate_numbers_args_t));
+        gen_nums_args->num_integers = i;
+        process_create(generate_numbers, gen_nums_args);
     }
 }
+
+
 
 void timer_jumpto_scheduler(int signum, siginfo_t *info, void *vuc) {
     (void)signum; // unused
@@ -217,21 +220,25 @@ void timer_interrupt() {
     setitimer(ITIMER_REAL, &timer, NULL); // set up timer
 }
 
+void schedule() {
+
+}
+
 
 int main() {
     // initialize process list
-    _os_init_process_list();
+    init_process_list();
     
     // create scheduler queue. Exit on failure
     if (scheduler_queue_create() < 0) {
         printf("Failed to create scheduler queue\n");
-        return _os_clean_exit(-1);
+        return clean_exit(-1);
     }
 
     // create process0
-    if (_os_process_create(fill_process_list) < 0) {
+    if (process_create(fill_process_list, NULL) < 0) {
         printf("Failed to create root process\n");
-        return _os_clean_exit(-1);
+        return clean_exit(-1);
     }
 
     // initialize scheduler context
@@ -246,9 +253,8 @@ int main() {
     process_t *process0 = get_process(0);
     if (process0 == NULL) {
         printf("Process 0 not found\n");
-        return _os_clean_exit(-1);
+        return clean_exit(-1);
     }
-    process0->stub_func = fill_process_list; // process0 will create other processs
 
     // run processs
     while (!queue_is_empty(scheduler_queue)) {
@@ -256,7 +262,7 @@ int main() {
         tid_t current_process_id = current_process->id;   // get its ID
         if (current_process == NULL) {                   // ensure its not NULL (if it is, nothing to run)
             printf("No more processs to run\n");
-            return _os_clean_exit(-1);
+            return clean_exit(-1);
         }
         printf("Running process %d\n", current_process->id);
         swapcontext(&main_context, &current_process->context);
@@ -265,7 +271,7 @@ int main() {
 
         // check if process has exited
         if (current_process->state == PROCESS_EXITED) {
-            _os_process_exit(current_process_id);
+            process_exit(current_process_id);
         } else {
             // reschedule process that just ran
             queue_push(scheduler_queue, current_process);
@@ -275,5 +281,5 @@ int main() {
     }
    
     // Free all processs
-    return _os_clean_exit(0);
+    return clean_exit(0);
 }

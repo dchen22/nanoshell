@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include "process.h"
+#include "basic_functions.h"
+#include <assert.h>
 
 void print_hello_world() {
     printf("hello world\n");
 }
 
-void print_identity() {
+void print_identity(void *args) {
+    (void)args; // unused
+    
     process_t *curr_thr = get_current_process();
     if (curr_thr == NULL) {
         printf("Error: current process is NULL\n");
@@ -19,20 +23,17 @@ void print_identity() {
     printf("I am process %u\n", curr_thr->id);
 }
 
-void interrupted_print_to_maxprocesss() {
-    unsigned int i = 0;
-    while (i < MAX_PROCESSES) {
-        printf("%d ", i);
-        if (i == get_current_process()->id) {
-            process_yield();
-        }
-        i++;
-    }
-}
 
-void print_1mil_nums() {
-    for (unsigned int i = 0; i < 1e4; i++) {
-        printf("%d ", i);
+void generate_numbers(void *args) {
+    assert(args != NULL);
+    generate_numbers_args_t *gen_args = (generate_numbers_args_t*)args;
+
+    for (unsigned int i = 0; i < gen_args->num_integers; i++) {
+        // if (i % 1000 == 0) {
+            printf("%d ", i);
+        // }
+        
     }
-    printf("\n\n");
+
+    free(gen_args);
 }
