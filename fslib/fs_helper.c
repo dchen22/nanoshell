@@ -156,3 +156,55 @@ void free_get_files_in_dir(inode_t** files) {
         free(files);
     }
 }
+
+
+int file_exists(inode_t* directory, char* filename) {
+    if (directory == NULL) {
+        return -2;
+    }
+    if (!directory->is_directory) {
+        return -1;
+    }
+
+    // Add files from direct blocks
+    for (uint32_t i = 0; i < 12; i++) {
+        if (directory->direct_blocknums[i] != 0) {
+            uint32_t* direct_block = (uint32_t*)(disk_start + directory->direct_blocknums[i] * BLOCK_SIZE);
+            for (uint32_t d = 0; d < BLOCK_SIZE / sizeof(uint32_t); d++) {
+                if (direct_block[d] != 0) {
+                    inode_t* subfile = get_inode_by_index(direct_block[d]);
+                    if (subfile == NULL) {
+                        return -2;
+                    }
+                    if (strcmp(subfile->name, filename) == 0) {
+                        return 0;
+                    }
+                }
+            }
+            
+        }
+    }
+    
+    // Add files from indirect blocks
+    if (directory->indirect_blocknum != 0) {
+        uint32_t* indirect_block = (uint32_t*)(disk_start + directory->indirect_blocknum * BLOCK_SIZE);
+        for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(uint32_t); i++) {
+            if (indirect_block[i] != 0) {
+                uint32_t* directory_block = (uint32_t*)(disk_start + indirect_block[i] * BLOCK_SIZE);
+                for (uint32_t d = 0; d < BLOCK_SIZE / sizeof(uint32_t); d++) {
+                    if (directory_block[d] != 0) {
+                        inode_t* subfile = get_inode_by_index(directory_block[d]);
+                        if (subfile == NULL) {
+                            return -2;
+                        }
+                        if (strcmp(subfile->name, filename) == 0) {
+                            return 0;
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
+    return -1;
+}

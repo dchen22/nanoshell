@@ -50,3 +50,13 @@ inode_t** get_files_in_dir(inode_t* directory);
  * @param files Array of inode pointers to free
  */
 void free_get_files_in_dir(inode_t** files);
+
+/**
+ * Check whether a file exists in a directory.
+ * 
+ * @param directory Pointer to directory inode
+ * @param filename Name of file
+ * 
+ * @return 0 if file exists, -1 if file does not exist. Return -2 on fs error
+ */
+int file_exists(inode_t* directory, char* filename);
