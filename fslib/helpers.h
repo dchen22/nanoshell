@@ -31,14 +31,17 @@ uint32_t bitmapalloc(char *bitmap, size_t nbits);
  * 
  * @param parts The array of strings to free
  */
-void free_split(char **parts);
+void free_split_path(char **parts);
 
 /**
  * Split a path into a NULL-terminated array of malloc'd strings.
  * @param path The path to split
+ * @param out_len The number of segments in the path, not including the final NULL
+ * @param out_is_dir Whether the original path ended with '/'
  * @return A NULL-terminated array of malloc'd strings.
  */
-char **split_path(const char *path);
+char **split_path(const char *path, unsigned int *out_len, bool *out_is_dir);
+
 
 
 

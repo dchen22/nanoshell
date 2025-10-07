@@ -125,26 +125,38 @@ uint32_t bitmapalloc(char *bitmap, size_t nbits) {
 }
 
 
-void free_split(char **parts)
+void free_split_path(char **parts)
 {
     if (!parts) return;
     for (size_t i = 0; parts[i]; ++i) free(parts[i]);
     free(parts);
 }
 
-char **split_path(const char *path)
-/* Returns a NULL-terminated array of malloc'd strings.
-   Caller must free with free_split(parts). On error, returns NULL. */
+char **split_path(const char *path, unsigned int *out_len, bool *out_is_dir)
+/* Returns a NULL-terminated array of malloc'd strings (each segment).
+   *out_len = number of segments (not counting the final NULL).
+   *out_is_dir = true iff the original path ended with '/'.
+   Caller must free with free_split(parts). On error, returns NULL and
+   sets out_len=0 and out_is_dir=false (if pointers are non-NULL). */
 {
+    if (out_len) *out_len = 0;
+    if (out_is_dir) *out_is_dir = false;
+
     if (!path) return NULL;
 
-    // 1) Count segments
+    // Determine if the original path ends with '/'
+    size_t plen = strlen(path);
+    bool ends_with_slash = false;
+    if (plen > 0 && path[plen - 1] == '/') ends_with_slash = true;
+    if (out_is_dir) *out_is_dir = ends_with_slash;
+
+    // 1) Count non-empty segments
     size_t n = 0;
     const char *p = path;
     while (*p) {
-        while (*p == '/') ++p;                   // skip slashes
+        while (*p == '/') ++p;            // skip slashes
         if (!*p) break;
-        while (*p && *p != '/') ++p;             // consume segment
+        while (*p && *p != '/') ++p;      // consume segment
         ++n;
     }
 
@@ -164,7 +176,7 @@ char **split_path(const char *path)
 
         char *seg = malloc(len + 1);
         if (!seg) {
-            free_split(parts);
+            free_split_path(parts);
             return NULL;
         }
         memcpy(seg, start, len);
@@ -172,6 +184,7 @@ char **split_path(const char *path)
         parts[i++] = seg;
     }
     parts[i] = NULL;
+
+    if (out_len) *out_len = (unsigned int)n;
     return parts;
 }
-

@@ -312,9 +312,17 @@ int delete_file(inode_t* parent, const char *filename) {
   
 }
 
-uint32_t read_file(const char *filename, char *buffer, uint32_t buffer_size) {
+uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
+    if (parent == NULL) {
+        printf("READ_FILE FAILURE: Parent must be a valid inode\n");
+        return -1;
+    }
+    if (!parent->is_directory) {
+        printf("READ_FILE FAILURE: Parent must be a directory\n");
+        return -1;
+    }
     // linear search through files
-    inode_t* inode = get_inode_by_name(filename, NULL);
+    inode_t* inode = get_inode_by_name(parent, filename, NULL);
     if (inode == NULL) {
         printf("FAILURE: File not found\n");
         return -1;
@@ -385,8 +393,16 @@ uint32_t read_file(const char *filename, char *buffer, uint32_t buffer_size) {
 
 }
 
-uint32_t write_file(const char *filename, const char *buffer, uint32_t buffer_size) {
-    inode_t* inode = get_inode_by_name(filename, NULL);
+uint32_t write_file(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
+    if (parent == NULL) {
+        printf("WRITE_FILE FAILURE: Parent must be a valid inode\n");
+        return -1;
+    }
+    if (!parent->is_directory) {
+        printf("WRITE_FILE FAILURE: Parent must be a directory\n");
+        return -1;
+    }
+    inode_t* inode = get_inode_by_name(parent, filename, NULL);
     if (inode == NULL) {
         printf("FAILURE: File not found\n");
         return 0;
@@ -526,4 +542,14 @@ void print_files_in_dir(inode_t* directory) {
     
     // Free the array
     free_get_files_in_dir(files);
+}
+
+inode_t get_properties(inode_t* directory, const char *filename) {
+    inode_t* file = get_inode_by_name(directory, filename, NULL);
+    if (file == NULL) {
+        inode_t empty_inode;
+        empty_inode.is_allocated = false;
+        return empty_inode;
+    }
+    return *file;
 }

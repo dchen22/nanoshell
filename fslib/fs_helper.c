@@ -1,15 +1,50 @@
 #include "fs_helper.h"
 
-inode_t* get_inode_by_name(const char *filename, uint32_t* inode_index) {
-    // linear search through files
-    for (unsigned int i = 0; i < sb->num_max_inodes; i++) {
-        if (bitmapget(inode_bitmap, sb->num_max_inodes, i)) {
-            inode_t* inode = (inode_t*)(inode_table + i * sizeof(inode_t));
-            if (strcmp(inode->name, filename) == 0) {
-                if (inode_index != NULL) {
-                    *inode_index = i;
+inode_t* get_inode_by_name(inode_t* parent, const char *filename, uint32_t* inode_index) {
+    if (parent == NULL) {
+        printf("GET_INODE_BY_NAME FAILURE: Parent must be a valid inode\n");
+        return NULL;
+    }
+    if (!parent->is_directory) {
+        printf("GET_INODE_BY_NAME FAILURE: Parent must be a directory\n");
+        return NULL;
+    }
+    for (uint32_t i = 0; i < 12; i++) {
+        if (parent->direct_blocknums[i] != 0) {
+            uint32_t* direct_block = (uint32_t*)(disk_start + parent->direct_blocknums[i] * BLOCK_SIZE);
+            for (uint32_t d = 0; d < BLOCK_SIZE / sizeof(uint32_t); d++) {
+                if (direct_block[d] != 0) {
+                    inode_t* inode = get_inode_by_index(direct_block[d]);
+                    if (inode == NULL) {
+                        printf("GET_INODE_BY_NAME FAILURE: Inode is null\n");
+                        return NULL;
+                    }
+                    if (strcmp(inode->name, filename) == 0) {
+                        if (inode_index) *inode_index = direct_block[d];
+                        return inode;
+                    }
                 }
-                return inode;
+            }
+        }
+    }
+    if (parent->indirect_blocknum != 0) {
+        uint32_t* indirect_block = (uint32_t*)(disk_start + parent->indirect_blocknum * BLOCK_SIZE);
+        for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(uint32_t); i++) {
+            if (indirect_block[i] != 0) {
+                uint32_t* directory_block = (uint32_t*)(disk_start + indirect_block[i] * BLOCK_SIZE);
+                for (uint32_t d = 0; d < BLOCK_SIZE / sizeof(uint32_t); d++) {
+                    if (directory_block[d] != 0) {
+                        inode_t* inode = get_inode_by_index(directory_block[d]);
+                        if (inode == NULL) {
+                            printf("GET_INODE_BY_NAME FAILURE: Inode is null\n");
+                            return NULL;
+                        }
+                        if (strcmp(inode->name, filename) == 0) {
+                            if (inode_index) *inode_index = directory_block[d];
+                            return inode;
+                        }
+                    }
+                }
             }
         }
     }

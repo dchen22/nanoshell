@@ -35,7 +35,7 @@ int delete_file(inode_t* parent, const char *filename);
  * @param buffer_size The size of the buffer
  * @return Number of bytes read (0 may indicate empty file or error)
  */
-uint32_t read_file(const char *filename, char *buffer, uint32_t buffer_size);
+uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size);
 
 /**
  * Write to a file. Overwrites the contents of the file.
@@ -45,7 +45,7 @@ uint32_t read_file(const char *filename, char *buffer, uint32_t buffer_size);
  * @param buffer_size The size of the buffer
  * @return Number of bytes written 
  */
-uint32_t write_file(const char *filename, const char *buffer, uint32_t buffer_size);
+uint32_t write_file(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size);
 
 /**
  * Print all files in the filesystem
@@ -61,5 +61,14 @@ void print_fs_status(void);
  * @param directory Pointer to directory inode
  */
 void print_files_in_dir(inode_t* directory);
+
+/**
+ * Get the properties of a file
+ * 
+ * @param directory Pointer to directory inode
+ * @param filename The name of the file to get the properties of
+ * @return Copy of the file inode. Inode is_allocated is false if file does not exist
+ */
+inode_t get_properties(inode_t* directory, const char *filename);
 
 
