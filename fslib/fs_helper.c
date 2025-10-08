@@ -1,6 +1,6 @@
 #include "fs_helper.h"
 
-inode_t* get_inode_by_name(inode_t* parent, const char *filename, uint32_t* inode_index) {
+inode_t* get_subfile_by_name(inode_t* parent, const char *filename, uint32_t* inode_index) {
     if (parent == NULL) {
         printf("GET_INODE_BY_NAME FAILURE: Parent must be a valid inode\n");
         return NULL;
@@ -193,7 +193,7 @@ void free_get_files_in_dir(inode_t** files) {
 }
 
 
-int file_exists(inode_t* directory, char* filename) {
+int _inode_exists(inode_t* directory, const char* filename) {
     if (directory == NULL) {
         return -2;
     }
@@ -242,4 +242,40 @@ int file_exists(inode_t* directory, char* filename) {
         }
     }
     return -1;
+}
+
+void free_split_path_inodes(inode_t** inodes) {
+    free(inodes);
+}
+
+inode_t** split_path_inodes(const char *filepath, uint32_t* out_len, bool* out_is_dir) {
+    unsigned int path_len = 0; bool end_is_dir = false;
+    char** path_components = split_path(filepath, &path_len, &end_is_dir);
+    if (path_len == 0) {
+        return NULL;
+    }
+    if (strcmp(path_components[0], "root") != 0) {
+        return NULL;
+    }
+
+
+    inode_t** inodes = (inode_t**)malloc((path_len + 1) * sizeof(inode_t*));
+    if (inodes == NULL) {
+        return NULL;
+    }
+    inode_t* curr_dir = get_inode_by_index(0);
+    inodes[0] = curr_dir;
+    for (unsigned int c = 1; c < path_len; c++) {
+        curr_dir = get_subfile_by_name(curr_dir, path_components[c], NULL);
+        if (curr_dir == NULL) {
+            free_split_path_inodes(inodes);
+            free_split_path(path_components);
+            return NULL;
+        }
+        inodes[c] = curr_dir;
+    }
+    free_split_path(path_components);
+    if (out_len) *out_len = path_len;
+    if (out_is_dir) *out_is_dir = end_is_dir;
+    return inodes;
 }

@@ -21,6 +21,21 @@ int format_disk(const char *disk_name, size_t disk_size, size_t max_files) {
     assert(sizeof(inode_t) <= BLOCK_SIZE);
     assert(sizeof(uint32_t) <= BLOCK_SIZE);
 
+    // If there's already a disk mapped, unmap it first to avoid having multiple mmaps
+    if (disk_start != NULL && disk_start != MAP_FAILED) {
+        size_t old_disk_size = (sb != NULL) ? sb->disk_size : disk_size;
+        printf("Warning: Unmapping existing disk before formatting\n");
+        if (munmap(disk_start, old_disk_size) == -1) {
+            perror("munmap failed during format_disk");
+        }
+        disk_start = NULL;
+        sb = NULL;
+        inode_bitmap = NULL;
+        data_bitmap = NULL;
+        inode_table = NULL;
+        data_section = NULL;
+    }
+
     if (disk_size < 2 * BLOCK_SIZE) {   // superblock and at least 1 bitmap block
         fprintf(stderr, "Disk size is too small\n");
         return -1;
@@ -51,6 +66,9 @@ int format_disk(const char *disk_name, size_t disk_size, size_t max_files) {
         close(fd);
         return -1;
     }
+    
+    // Set disk_start to point to the new memory mapping
+    disk_start = map;
 
     memset(map, 0, disk_size); // Initialize the mapped memory to zero
 
@@ -91,8 +109,12 @@ int format_disk(const char *disk_name, size_t disk_size, size_t max_files) {
         return -1;
     }
 
-    // Cleanup and return
-    // cleanup_disk(map, disk_size, fd);
+    // Note: We intentionally do NOT call cleanup_disk here so that the filesystem
+    // remains mapped and ready to use. This allows test functions to call format_disk
+    // and immediately use the filesystem without needing to call load_fs.
+    // The main() test that specifically tests load_fs functionality will need to
+    // handle the fact that disk_start is already set.
+    
     return 0;
 }
 
@@ -272,6 +294,7 @@ void cleanup_disk(char *disk_map, size_t disk_size, int fd) {
     }
     
     // Clear the global filesystem pointers
+    disk_start = NULL;
     sb = NULL;
     inode_bitmap = NULL;
     data_bitmap = NULL;

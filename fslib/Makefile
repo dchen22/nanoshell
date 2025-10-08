@@ -8,7 +8,7 @@ TEST_FS_TARGET = test_fs
 TEST_FORMAT_TARGET = test_format
 
 # Object files
-FS_OBJS = fs.o mkfs.o helpers.o fs_helper.o
+FS_OBJS = fs.o mkfs.o helpers.o fs_helper.o interface.o
 
 MAIN_OBJS = main.o $(FS_OBJS)
 TEST_FS_OBJS = test_fs.o $(FS_OBJS)
@@ -50,6 +50,9 @@ helpers.o: helpers.c helpers.h
 
 fs_helper.o: fs_helper.c fs_helper.h
 	$(CC) $(CFLAGS) -c fs_helper.c
+
+interface.o: interface.c interface.h
+	$(CC) $(CFLAGS) -c interface.c
 
 # Clean up
 clean:

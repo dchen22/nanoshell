@@ -1,6 +1,19 @@
 #include "mkfs.h"
 #include "helpers.h"
 
+enum {
+    ERROR_FILE_NOT_FOUND = -1,
+    ERROR_FILE_TYPE_MISMATCH = -2,
+    ERROR_FILE_ALREADY_EXISTS = -3,
+    ERROR_INVALID_PATH = -4,
+    ERROR_INVALID_PARENT = -5,
+    ERROR_MAX_FILES_REACHED = -6,
+    ERROR_FAILED_TO_ALLOCATE_INODE = -7,
+    ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK = -8,
+    ERROR_FAILED_TO_CREATE_FILE = -9,
+    ERROR_FAILED_TO_DELETE_FILE = -10
+};
+
 /**
  * Get an inode by name
  * 
@@ -10,7 +23,7 @@
  * 
  * @return Pointer to inode if found, NULL if not found
  */
-inode_t* get_inode_by_name(inode_t* parent, const char *filename, uint32_t* inode_index);
+inode_t* get_subfile_by_name(inode_t *parent, const char *filename, uint32_t* inode_index);
 
 /**
  * Get an inode by its index
@@ -60,4 +73,21 @@ void free_get_files_in_dir(inode_t** files);
  * 
  * @return 0 if file exists, -1 if file does not exist. Return -2 on fs error
  */
-int file_exists(inode_t* directory, char* filename);
+int _inode_exists(inode_t* directory, const char* filename);
+
+
+/**
+ * Free the array of inode pointers returned by split_path_inodes.
+ * 
+ * @param inodes Array of inode pointers to free
+ */
+void free_split_path_inodes(inode_t** inodes);
+
+/**
+ * Split a path into a NULL-terminated array of inode pointers.
+ * @param filepath Path to split
+ * @param out_len Pointer to store the length of the path
+ * @param out_is_dir Pointer to store whether the last component of the path is a directory
+ * @return NULL-terminated array of inode pointers, or NULL on error (i.e. anywhere the path is invalid)
+ */
+inode_t** split_path_inodes(const char* filepath, uint32_t* out_len, bool* out_is_dir);

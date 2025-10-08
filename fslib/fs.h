@@ -17,7 +17,7 @@ void unload_fs(void);
  * @param is_directory Whether this file is a directory (otherwise, it's a file)
  * @return 0 on success, -1 on failure
  */
-int create_file(inode_t* parent, const char *filename, bool is_directory);
+int _create_inode(inode_t* parent, const char *filename, bool is_directory);
 /**
  * Delete a file 
  * 
@@ -25,7 +25,7 @@ int create_file(inode_t* parent, const char *filename, bool is_directory);
  * @param filename The name of the file to delete
  * @return 0 on success, -1 on failure
  */
-int delete_file(inode_t* parent, const char *filename);
+int _delete_inode(inode_t* parent, const char *filename);
 
 /**
  * Read a file's contents into a buffer
@@ -35,7 +35,7 @@ int delete_file(inode_t* parent, const char *filename);
  * @param buffer_size The size of the buffer
  * @return Number of bytes read (0 may indicate empty file or error)
  */
-uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size);
+uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size);
 
 /**
  * Write to a file. Overwrites the contents of the file.
@@ -45,7 +45,7 @@ uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t
  * @param buffer_size The size of the buffer
  * @return Number of bytes written 
  */
-uint32_t write_file(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size);
+uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size);
 
 /**
  * Print all files in the filesystem

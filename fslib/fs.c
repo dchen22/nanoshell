@@ -1,5 +1,4 @@
 #include "fs.h"
-#include "fs_helper.h"
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -15,6 +14,11 @@ static size_t disk_size = 0;
 int load_fs(const char *disk_name) {
     // Check if filesystem is already loaded
     if (disk_start != NULL) {
+        // If it's the same disk that's already loaded (e.g. from format_disk), that's ok
+        if (sb != NULL && strncmp(sb->disk_name, disk_name, MAX_FILENAME_LEN) == 0) {
+            // Already loaded with the same disk, just return success
+            return 0;
+        }
         fprintf(stderr, "Filesystem already loaded\n");
         return -1;
     }
@@ -87,37 +91,28 @@ int load_fs(const char *disk_name) {
     return 0;
 }
 
-int create_file(inode_t* parent, const char *filename, bool is_directory) {
+int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
     // ensure parent is valid
     if (parent == NULL || parent->is_allocated == false) {
-        printf("CREATE_FILE FAILURE: Parent must be a valid inode\n");
-        return -1;
+        return ERROR_INVALID_PARENT;
     }
     // ensure parent is a directory
     if (!parent->is_directory) {
-        printf("CREATE_FILE FAILURE: Parent must be a directory\n");
-        return -1;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
-    // // check for same name file under parent directory
-    // for (uint32_t i = 0; i < 12; i++) {
-    //     if (parent->direct_blocknums[i] != 0) { // check if parent direct block is in use
-    //         uint32_t* direct_block = (uint32_t*)(disk_start + parent->direct_blocknums[i] * BLOCK_SIZE);
-    //         for (uint32_t d = 0; d < BLOCK_SIZE / sizeof(uint32_t); d++) {
-                
-    //         }
-    //     }
-    // }
+
+    if (_inode_exists(parent, filename) == 0) {
+        return ERROR_FILE_ALREADY_EXISTS;
+    }
 
     // ensure we haven't run out of inodes
     if (sb->num_used_inodes >= sb->num_max_inodes) {
-        printf("CREATE_FILE FAILURE: Reached max number of inodes\n");
-        return -1;
+        return ERROR_MAX_FILES_REACHED;
     }
     // try to allocate new inode
     uint32_t new_inode_index = bitmapalloc(inode_bitmap, sb->num_max_inodes);
     if (new_inode_index == 0) {
-        printf("CREATE_FILE FAILURE: Failed to allocate new inode\n");
-        return -1;
+        return ERROR_FAILED_TO_ALLOCATE_INODE;
     }
 
     inode_t* new_inode = (inode_t*)(inode_table + new_inode_index * sizeof(inode_t));
@@ -147,8 +142,7 @@ int create_file(inode_t* parent, const char *filename, bool is_directory) {
         if (parent->direct_blocknums[i] == 0) {
             uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
             if (available_dir_block_index == 0) {   
-                printf("CREATE_FILE FAILURE: No available data blocks for new parent direct block\n");
-                return -1;
+                return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
             }
             parent->direct_blocknums[i] = available_dir_block_index;
             uint32_t* directory_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
@@ -169,8 +163,7 @@ int create_file(inode_t* parent, const char *filename, bool is_directory) {
         // allocate indirect block
         uint32_t available_indirect_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_indirect_block_index == 0) {
-            printf("CREATE_FILE FAILURE: No available data blocks for new parent indirect block\n");
-            return -1;
+            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
         }
         parent->indirect_blocknum = available_indirect_block_index;
         uint32_t* indirect_block = (uint32_t*)(disk_start + available_indirect_block_index * BLOCK_SIZE);
@@ -180,8 +173,7 @@ int create_file(inode_t* parent, const char *filename, bool is_directory) {
         // allocate direct block
         uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_dir_block_index == 0) {
-            printf("CREATE_FILE FAILURE: No available data blocks for new parent direct block\n");
-            return -1;
+            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
         }
         uint32_t* dir_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
         // initialize dir block to all zeroes
@@ -195,8 +187,7 @@ int create_file(inode_t* parent, const char *filename, bool is_directory) {
             if (indirect_block[i] == 0) {
                 uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
                 if (available_dir_block_index == 0) {
-                    printf("CREATE_FILE FAILURE: No available data blocks for new parent direct block\n");
-                    return -1;
+                    return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
                 }
                 indirect_block[i] = available_dir_block_index;
                 uint32_t* directory_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
@@ -216,12 +207,11 @@ int create_file(inode_t* parent, const char *filename, bool is_directory) {
     }
 
 
-    printf("CREATE_FILE FAILURE: No available space in parent directory\n");
-    return -1;
+    return ERROR_FAILED_TO_CREATE_FILE;
 }
 
 
-int delete_file(inode_t* parent, const char *filename) {
+int _delete_inode(inode_t* parent, const char *filename) {
     // ensure parent is valid
     if (parent == NULL || parent->is_allocated == false) {
         printf("DELETE_FILE FAILURE: Parent must be a valid inode\n");
@@ -312,7 +302,7 @@ int delete_file(inode_t* parent, const char *filename) {
   
 }
 
-uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
+uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
     if (parent == NULL) {
         printf("READ_FILE FAILURE: Parent must be a valid inode\n");
         return -1;
@@ -322,7 +312,7 @@ uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t
         return -1;
     }
     // linear search through files
-    inode_t* inode = get_inode_by_name(parent, filename, NULL);
+    inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
         printf("FAILURE: File not found\n");
         return -1;
@@ -333,7 +323,7 @@ uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t
         return -1;
     }
 
-    unsigned long bytes_read = 0;
+    unsigned long bytes_read = 0; 
 
     // iterate through direct block pointers
     for (unsigned int i = 0; i < 12; i++) {
@@ -393,7 +383,7 @@ uint32_t read_file(inode_t* parent, const char *filename, char *buffer, uint32_t
 
 }
 
-uint32_t write_file(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
+uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
     if (parent == NULL) {
         printf("WRITE_FILE FAILURE: Parent must be a valid inode\n");
         return -1;
@@ -402,7 +392,7 @@ uint32_t write_file(inode_t* parent, const char *filename, const char *buffer, u
         printf("WRITE_FILE FAILURE: Parent must be a directory\n");
         return -1;
     }
-    inode_t* inode = get_inode_by_name(parent, filename, NULL);
+    inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
         printf("FAILURE: File not found\n");
         return 0;
@@ -545,7 +535,7 @@ void print_files_in_dir(inode_t* directory) {
 }
 
 inode_t get_properties(inode_t* directory, const char *filename) {
-    inode_t* file = get_inode_by_name(directory, filename, NULL);
+    inode_t* file = get_subfile_by_name(directory, filename, NULL);
     if (file == NULL) {
         inode_t empty_inode;
         empty_inode.is_allocated = false;
