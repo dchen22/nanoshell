@@ -71,9 +71,9 @@ void free_get_files_in_dir(inode_t** files);
  * @param directory Pointer to directory inode
  * @param filename Name of file
  * 
- * @return 0 if file exists, -1 if file does not exist. Return -2 on fs error
+ * @return true if file exists, false if file does not exist. Return false on fs error
  */
-int _inode_exists(inode_t* directory, const char* filename);
+bool _inode_exists(inode_t* directory, const char* filename);
 
 
 /**

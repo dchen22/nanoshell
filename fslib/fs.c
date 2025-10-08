@@ -101,7 +101,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
         return ERROR_FILE_TYPE_MISMATCH;
     }
 
-    if (_inode_exists(parent, filename) == 0) {
+    if (_inode_exists(parent, filename)) {
         return ERROR_FILE_ALREADY_EXISTS;
     }
 

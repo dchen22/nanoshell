@@ -193,12 +193,12 @@ void free_get_files_in_dir(inode_t** files) {
 }
 
 
-int _inode_exists(inode_t* directory, const char* filename) {
+bool _inode_exists(inode_t* directory, const char* filename) {
     if (directory == NULL) {
-        return -2;
+        return false;
     }
     if (!directory->is_directory) {
-        return -1;
+        return false;
     }
 
     // Add files from direct blocks
@@ -209,10 +209,11 @@ int _inode_exists(inode_t* directory, const char* filename) {
                 if (direct_block[d] != 0) {
                     inode_t* subfile = get_inode_by_index(direct_block[d]);
                     if (subfile == NULL) {
-                        return -2;
+                        printf("_inode_exists: corruption detected");
+                        return false;
                     }
                     if (strcmp(subfile->name, filename) == 0) {
-                        return 0;
+                        return true;
                     }
                 }
             }
@@ -230,10 +231,11 @@ int _inode_exists(inode_t* directory, const char* filename) {
                     if (directory_block[d] != 0) {
                         inode_t* subfile = get_inode_by_index(directory_block[d]);
                         if (subfile == NULL) {
-                            return -2;
+                            printf("_inode_exists: corruption detected");
+                            return false;
                         }
                         if (strcmp(subfile->name, filename) == 0) {
-                            return 0;
+                            return true;
                         }
                     }
                 }
@@ -241,7 +243,7 @@ int _inode_exists(inode_t* directory, const char* filename) {
             }
         }
     }
-    return -1;
+    return false;
 }
 
 void free_split_path_inodes(inode_t** inodes) {
