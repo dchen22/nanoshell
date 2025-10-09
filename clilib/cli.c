@@ -1,5 +1,5 @@
 #include "cli.h"
-#include "../fslib/tfs.h"
+#include "../fslib/interface.h"
 #include "vim.h"
 #include <termios.h>
 
@@ -49,20 +49,12 @@ void parse_command(void *params_struct) {
         return;
     }
     else if (strcmp(command, "ls") == 0) {      // list files
-        // process_create(list_files, NULL);
-        char **filelist = list_files();
-
-        size_t index = 0;
-        while (filelist[index] != NULL) {
-            printf("%s\n", filelist[index]);
-
-            // free the filename pointer
-            free(filelist[index]);
-            filelist[index] = NULL; // good practice to avoid dangling the pointer
-
-            index++;
+        if (get_argc(argv) < 2) {
+            printf("nanoshell: ls: Usage: ls [filepath]\n");
+            params->retval = -1;
+            return;
         }
-        free(filelist);
+        list_files(argv[1]);
         params->retval = 0;
         return;
     }
@@ -82,11 +74,17 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        if (write_file(argv[1], argv[2], strlen(argv[2])) < 0) {
+        if (!file_exists(argv[1])) {
             printf("nanoshell: write: %s: No such file\n", argv[1]);
             params->retval = -1;
             return;
         }
+        if (!(get_file_metadata(argv[1]).is_directory)) {
+            printf("nanoshell: write: %s is a directory\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
+        printf("%u bytes written\n", write_file(argv[1], argv[2], strlen(argv[2])));
         params->retval = 0;
         return;
     }
@@ -103,7 +101,14 @@ void parse_command(void *params_struct) {
             return;
         }
 
-        tfs_size_t filesize = get_size(argv[1]);
+        inode_t file_metadata = get_file_metadata(argv[1]);
+        if (!file_metadata.is_allocated) {
+            printf("nanoshell: cat: %s: Corrupted file\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
+
+        uint32_t filesize = file_metadata.size;
     
         if (filesize == 0)  {
             params->retval = 0;    // empty file, do nothing
@@ -147,10 +152,20 @@ void parse_command(void *params_struct) {
                 return;
             }
         }
+
+        inode_t file_metadata = get_file_metadata(argv[1]);
+        if (!file_metadata.is_allocated) {
+            printf("nanoshell: cat: %s: Corrupted file\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
+
+        uint32_t filesize = file_metadata.size;
+
         // read content of file into buffer
-        char *file_content = malloc(get_size(argv[1]) + 1); // +1 for null terminator
-        read_file(argv[1], file_content, get_size(argv[1]));    // read file contents into buffer
-        file_content[get_size(argv[1])] = '\0'; // null terminate the buffer
+        char *file_content = malloc(filesize + 1); // +1 for null terminator
+        read_file(argv[1], file_content, filesize);    // read file contents into buffer
+        file_content[filesize] = '\0'; // null terminate the buffer
         char *vim_contents = run_editor(file_content);  // start editor and write file contents to it
         write_file(argv[1], vim_contents, strlen(vim_contents));    // write new contents back to file
         free(file_content); // free the file content buffer

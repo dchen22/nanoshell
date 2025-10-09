@@ -1,4 +1,4 @@
-#include "fslib/tfs.h"
+#include "fslib/interface.h"
 #include "clilib/cli.h"
 #include "processlib/process.h"
 #include <stdio.h>
@@ -7,7 +7,7 @@
 
 int main() {
     // initialize the filesystem
-    if (init_tfs() != 0) {
+    if (load_fs("fslib/disk") != 0) {
         printf("Failed to initialize filesystem\n");
         return -1;
     }
@@ -23,7 +23,7 @@ int main() {
         scheduler_run_next_process();
     }
 
-    cleanup_tfs();
+    unload_fs();
     cleanup_processlib(0);
     printf("Exiting shell\n\n");
     return 0;

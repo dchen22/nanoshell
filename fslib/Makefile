@@ -1,22 +1,59 @@
-CC      := gcc
-CFLAGS  := -Wall -Wextra -Wno-deprecated-declarations -g -D_XOPEN_SOURCE=700 
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -g
 
-OBJS	:= fs.o bitmap.o mkfs.o 
+# Executable names
+MAIN_TARGET = main
+TEST_FS_TARGET = test_fs
+TEST_FORMAT_TARGET = test_format
 
-all: fs
+# Object files
+FS_OBJS = fs.o mkfs.o helpers.o fs_helper.o interface.o
 
-fs: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
+MAIN_OBJS = main.o $(FS_OBJS)
+TEST_FS_OBJS = test_fs.o $(FS_OBJS)
+TEST_FORMAT_OBJS = test_format.o $(FS_OBJS)
 
-fs.o : fslib/fs.c fslib/fs.h
-	$(CC) $(CFLAGS) -c $<
+# Default rule builds all executables
+all: $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET)
 
-bitmap.o : fslib/bitmap.c fslib/bitmap.h
-	$(CC) $(CFLAGS) -c $<
+# Link main program
+$(MAIN_TARGET): $(MAIN_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(MAIN_OBJS)
 
-mkfs.o : fslib/mkfs.c fslib/mkfs.h
-	$(CC) $(CFLAGS) -c $<
+# Link test_fs program
+$(TEST_FS_TARGET): $(TEST_FS_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(TEST_FS_OBJS)
 
-.PHONY: clean
+# Link test_format program
+$(TEST_FORMAT_TARGET): $(TEST_FORMAT_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(TEST_FORMAT_OBJS)
+
+# Compilation rules
+main.o: main.c fs.h mkfs.h
+	$(CC) $(CFLAGS) -c main.c
+
+test_fs.o: test_fs.c fs.h mkfs.h test_fs.h
+	$(CC) $(CFLAGS) -c test_fs.c
+
+test_format.o: test_format.c fs.h mkfs.h helpers.h
+	$(CC) $(CFLAGS) -c test_format.c
+
+fs.o: fs.c fs.h helpers.h fs_helper.h
+	$(CC) $(CFLAGS) -c fs.c
+
+mkfs.o: mkfs.c mkfs.h helpers.h
+	$(CC) $(CFLAGS) -c mkfs.c
+
+helpers.o: helpers.c helpers.h
+	$(CC) $(CFLAGS) -c helpers.c
+
+fs_helper.o: fs_helper.c fs_helper.h
+	$(CC) $(CFLAGS) -c fs_helper.c
+
+interface.o: interface.c interface.h
+	$(CC) $(CFLAGS) -c interface.c
+
+# Clean up
 clean:
-	rm -f $(OBJS) fs
+	rm -f *.o $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET)
