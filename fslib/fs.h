@@ -69,6 +69,6 @@ void print_files_in_dir(inode_t* directory);
  * @param filename The name of the file to get the properties of
  * @return Copy of the file inode. Inode is_allocated is false if file does not exist
  */
-inode_t get_properties(inode_t* directory, const char *filename);
+inode_t get_inode_properties(inode_t* directory, const char *filename);
 
 

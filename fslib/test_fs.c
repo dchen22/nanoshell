@@ -42,6 +42,9 @@ int main() {
 
     // test filepath parsing
     test_filepath();
+
+    // test listing files
+    test_list_files();
     
     // Unload the filesystem
     printf("Unloading filesystem...\n");
@@ -116,12 +119,20 @@ void test_create_file() {
     inode_t* root = get_inode_by_index(0);
     assert(root != NULL);
 
-    assert(strcmp(get_files_in_dir(root)[0]->name, "dirA") == 0);
-    assert(strcmp(get_files_in_dir(root)[1]->name, "dirB") == 0);
-    assert(strcmp(get_files_in_dir(root)[2]->name, "dirC") == 0);
-    assert(strcmp(get_files_in_dir(root)[3]->name, "dirD") == 0);
-    assert(get_files_in_dir(root)[4] == NULL);
+    assert(strcmp(get_files_in_dir(root, NULL)[0]->name, "dirA") == 0);
+    assert(strcmp(get_files_in_dir(root, NULL)[1]->name, "dirB") == 0);
+    assert(strcmp(get_files_in_dir(root, NULL)[2]->name, "dirC") == 0);
+    assert(strcmp(get_files_in_dir(root, NULL)[3]->name, "dirD") == 0);
+    assert(get_files_in_dir(root, NULL)[4] == NULL);
 
+    inode_t* subfiles = get_subfiles("root");
+    assert(subfiles != NULL);
+    assert(strcmp(subfiles[0].name, "dirA") == 0);
+    assert(strcmp(subfiles[1].name, "dirB") == 0);
+    assert(strcmp(subfiles[2].name, "dirC") == 0);
+    assert(strcmp(subfiles[3].name, "dirD") == 0);
+
+    free(subfiles);
 
     printf("Creating files test completed\n\n");
 }
@@ -250,8 +261,6 @@ void test_filepath() {
     printf("Formatting disk...\n");
     assert(format_disk("disk", BLOCK_SIZE * 100, 1000) == 0);
 
-
-
     printf("Creating folder 'root/A/'\n");
     int temp = 0;
     temp = create_file("root/A/");
@@ -282,4 +291,39 @@ void test_filepath() {
 
     printf("filepath test completed\n\n");
 
+}
+
+void test_list_files() {
+    printf("=== Testing listing files ===\n\n");
+
+    printf("Formatting disk...\n");
+    assert(format_disk("disk", BLOCK_SIZE * 100, 1000) == 0);
+
+    int temp = 0;
+
+    printf("Creating files...\n");
+    assert(create_file("root/test1.txt") == 0);
+    assert(create_file("root/A/") == 0);
+    assert(create_file("root/B/") == 0);
+    assert(create_file("root/B/C/") == 0);
+    assert(create_file("root/B/C/D/") == 0);
+    assert(create_file("root/B/C/test2.txt") == 0);
+
+    printf("Listing files...\n");
+    temp = list_files("root");
+    assert(temp == 3);
+    temp = list_files("root/A");
+    assert(temp == 0);
+    temp = list_files("root/B");
+    assert(temp == 1);
+    temp = list_files("root/B/C");
+    assert(temp == 2);
+    temp = list_files("root/B/C/D");
+    assert(temp == 0);
+    temp = list_files("root/B/C/D/test2.txt");
+    assert(temp < 0);
+    temp = list_files("root/test1.txt");
+    assert(temp < 0);
+
+    printf("list_files test completed\n\n");
 }

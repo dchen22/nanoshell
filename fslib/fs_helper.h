@@ -11,7 +11,8 @@ enum {
     ERROR_FAILED_TO_ALLOCATE_INODE = -7,
     ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK = -8,
     ERROR_FAILED_TO_CREATE_FILE = -9,
-    ERROR_FAILED_TO_DELETE_FILE = -10
+    ERROR_FAILED_TO_DELETE_FILE = -10,
+    ERROR_CORRUPTION_DETECTED = -11
 };
 
 /**
@@ -54,9 +55,10 @@ uint32_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* bu
  * Get all direct subfiles in a directory as an array of inode pointers.
  * 
  * @param directory Pointer to directory inode
+ * @param num_files Pointer to store number of subfiles, leave NULL if unneeded
  * @return NULL-terminated array of inode pointers, or NULL on error
  */
-inode_t** get_files_in_dir(inode_t* directory);
+inode_t** get_files_in_dir(inode_t* directory, uint32_t* num_files);
 
 /**
  * Free the array of inode pointers returned by get_files_in_dir.
@@ -91,3 +93,13 @@ void free_split_path_inodes(inode_t** inodes);
  * @return NULL-terminated array of inode pointers, or NULL on error (i.e. anywhere the path is invalid)
  */
 inode_t** split_path_inodes(const char* filepath, uint32_t* out_len, bool* out_is_dir);
+
+/**
+ * Return a NULL-terminated array of inode copies of the subfiles in a given directory
+ * 
+ * MALLOC: Returned pointer needs to be freed.
+ * 
+ * @param filepath Path to the directory
+ * @return NULL-terminated array of inode copies of the subfiles in a given directory. Returns NULL if the filepath does not exist or is not a directory
+ */
+inode_t* get_subfiles(const char *filepath);

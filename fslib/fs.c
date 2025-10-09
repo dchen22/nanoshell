@@ -214,13 +214,11 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
 int _delete_inode(inode_t* parent, const char *filename) {
     // ensure parent is valid
     if (parent == NULL || parent->is_allocated == false) {
-        printf("DELETE_FILE FAILURE: Parent must be a valid inode\n");
-        return -1;
+        return ERROR_INVALID_PARENT;
     }
     // ensure parent is a directory
     if (!parent->is_directory) {
-        printf("DELETE_FILE FAILURE: Parent must be a directory\n");
-        return -1;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
 
     
@@ -235,8 +233,7 @@ int _delete_inode(inode_t* parent, const char *filename) {
                 if (direct_block[d] != 0) {
                     inode_t* inode = get_inode_by_index(direct_block[d]);
                     if (inode == NULL) {
-                        printf("DELETE_FILE FAILURE: Inode is null\n");
-                        return -1;
+                        return ERROR_FAILED_TO_DELETE_FILE;
                     }
                     if (strcmp(inode->name, filename) == 0) {
                         inode_index = direct_block[d];
@@ -272,8 +269,7 @@ int _delete_inode(inode_t* parent, const char *filename) {
                         inode_index = directory_entry_block[d];
                         inode_t* inode = get_inode_by_index(inode_index);
                         if (inode == NULL) {
-                            printf("DELETE_FILE FAILURE: Inode is null\n");
-                            return -1;
+                            return ERROR_CORRUPTION_DETECTED;
                         }
                         if (strcmp(inode->name, filename) == 0) {
                             directory_entry_block[d] = 0;    // clear this entry
@@ -297,30 +293,25 @@ int _delete_inode(inode_t* parent, const char *filename) {
         }
     }
 
-    printf("DELETE_FILE FAILURE: File not found\n");
-    return -1;
+    return ERROR_FILE_NOT_FOUND;
   
 }
 
 uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
     if (parent == NULL) {
-        printf("READ_FILE FAILURE: Parent must be a valid inode\n");
-        return -1;
+        return ERROR_INVALID_PARENT;
     }
     if (!parent->is_directory) {
-        printf("READ_FILE FAILURE: Parent must be a directory\n");
-        return -1;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
     // linear search through files
     inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
-        printf("FAILURE: File not found\n");
-        return -1;
+        return ERROR_FILE_NOT_FOUND;
     }
     
     if (inode->is_directory) {
-        printf("FAILURE: File is a directory\n");
-        return -1;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
 
     unsigned long bytes_read = 0; 
@@ -346,7 +337,7 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
             bytes_read += buffer_size - bytes_read;
             // debug
             if (bytes_read != buffer_size) {
-                printf("WARNING: read direct block bytes does not match with buffer size \n");
+                return ERROR_CORRUPTION_DETECTED;
             }
             return bytes_read;
         }
@@ -371,7 +362,7 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
                 bytes_read += buffer_size - bytes_read;
                 // debug
                 if (bytes_read != buffer_size) {
-                    printf("WARNING: read indirect block bytes does not match with buffer size \n");
+                    return ERROR_CORRUPTION_DETECTED;
                 }
                 return bytes_read;
             }
@@ -385,22 +376,18 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
 
 uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
     if (parent == NULL) {
-        printf("WRITE_FILE FAILURE: Parent must be a valid inode\n");
-        return -1;
+        return ERROR_INVALID_PARENT;
     }
     if (!parent->is_directory) {
-        printf("WRITE_FILE FAILURE: Parent must be a directory\n");
-        return -1;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
     inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
-        printf("FAILURE: File not found\n");
-        return 0;
+        return ERROR_FILE_NOT_FOUND;
     }
 
     if (inode->is_directory) {
-        printf("FAILURE: File is a directory\n");
-        return 0;
+        return ERROR_FILE_TYPE_MISMATCH;
     }
 
     uint32_t bytes_written = 0;
@@ -412,8 +399,7 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
     for (unsigned int i = 0; i < 12; i++) {
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            printf("WRITE_FILE FAILURE: No more available data blocks\n");
-            return -1;
+            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
         }
         inode->direct_blocknums[i] = available_data_block_index;   // update direct block pointer
 
@@ -429,8 +415,7 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
     if (remaining_blocks > 0) {
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            printf("WRITE_FILE FAILURE: No more available data blocks\n");
-            return -1;
+            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
         }
         inode->indirect_blocknum = available_data_block_index;
     } else {
@@ -442,8 +427,7 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
         // allocate a data block and write to it
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            printf("WRITE_FILE FAILURE: No more available data blocks\n");
-            return -1;
+            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
         }
 
         // track data block in indirect block
@@ -519,7 +503,7 @@ void print_files_in_dir(inode_t* directory) {
         printf("Not a directory\n");
         return;
     }
-    inode_t** files = get_files_in_dir(directory);
+    inode_t** files = get_files_in_dir(directory, NULL);
     if (files == NULL) {
         printf("PRINT_FILES_IN_DIR FAILURE: get_files_in_dir returned NULL\n");
         return;
@@ -534,7 +518,7 @@ void print_files_in_dir(inode_t* directory) {
     free_get_files_in_dir(files);
 }
 
-inode_t get_properties(inode_t* directory, const char *filename) {
+inode_t get_inode_properties(inode_t* directory, const char *filename) {
     inode_t* file = get_subfile_by_name(directory, filename, NULL);
     if (file == NULL) {
         inode_t empty_inode;

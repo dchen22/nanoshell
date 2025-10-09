@@ -91,7 +91,7 @@ uint32_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* bu
     return 0;
 }
 
-inode_t** get_files_in_dir(inode_t* directory) {
+inode_t** get_files_in_dir(inode_t* directory, uint32_t *num_files) {
     if (!directory->is_directory) {
         printf("GET_FILES_IN_DIR FAILURE: Not a directory\n");
         return NULL;
@@ -183,6 +183,7 @@ inode_t** get_files_in_dir(inode_t* directory) {
         }
     }
     
+    if (num_files) *num_files = file_count;
     return files;
 }
 
@@ -280,4 +281,37 @@ inode_t** split_path_inodes(const char *filepath, uint32_t* out_len, bool* out_i
     if (out_len) *out_len = path_len;
     if (out_is_dir) *out_is_dir = end_is_dir;
     return inodes;
+}
+
+inode_t* get_subfiles(const char *filepath) {
+    if (filepath == NULL) {
+        return NULL;
+    }
+    unsigned int path_len = 0; bool out_is_dir = false;
+    inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
+    if (inodes == NULL || path_len == 0) {
+        free_split_path_inodes(inodes);
+        return NULL;
+    }
+
+    inode_t* target = inodes[path_len-1];
+    if (!(target->is_directory)) {
+        free_split_path_inodes(inodes);
+        return NULL;
+    }
+
+    uint32_t num_subfiles = 0;
+    inode_t** subfile_ptrs = get_files_in_dir(target, &num_subfiles);
+
+    inode_t* subfiles = malloc(sizeof(inode_t) * (num_subfiles+1));
+    for (uint32_t i = 0; i < num_subfiles + 1; i++) {
+        memset(subfiles + i, 0, sizeof(inode_t));
+    }
+    for (uint32_t i = 0; i < num_subfiles; i++) {
+        subfiles[i] = *(subfile_ptrs[i]);
+    }
+    subfiles[num_subfiles].is_allocated = false;
+
+    return subfiles;
+
 }

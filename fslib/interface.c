@@ -153,3 +153,31 @@ bool file_exists(const char *filepath) {
     }
     return get_file_metadata(filepath).is_allocated;
 }
+
+
+int list_files(const char *filepath) {
+    if (filepath == NULL) {
+        return ERROR_INVALID_PATH;
+    }
+    unsigned int path_len = 0; bool out_is_dir = false;
+    inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
+    if (inodes == NULL) {
+        free_split_path_inodes(inodes);
+        return ERROR_INVALID_PATH;
+    }
+
+    if (!(inodes[path_len - 1]->is_directory)) {
+        free_split_path_inodes(inodes);
+        return ERROR_FILE_TYPE_MISMATCH;
+    }
+
+    inode_t* subfiles = get_subfiles(filepath);
+    int count = 0;
+    for (inode_t* sf = subfiles; sf->is_allocated; sf = sf + 1) {
+        printf("%s\n", sf->name);
+        count++;
+    }
+    free_split_path_inodes(inodes);
+    free(subfiles);
+    return count;   
+}
