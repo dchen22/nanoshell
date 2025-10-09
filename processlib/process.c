@@ -65,7 +65,7 @@ int process_create(void (*stub_function)(void *), void *args) {
                 return -ENOMEM;
             }
 
-            printf("Process %d created and initialized\n", new_process->id);
+            // printf("Process %d created and initialized\n", new_process->id);
 
             // return process ID
             return i;
@@ -139,7 +139,7 @@ void process_exit(procid_t pid) {
     // decrement process count
     process_count--;
 
-    printf("Process %d exited\n", pid);
+    // printf("Process %d exited\n", pid);
 }
 
 void free_all_processs() {
@@ -246,7 +246,7 @@ void scheduler_run_next_process() {
         printf("No process to run\n");
         return;
     }
-    printf("Running process %d\n", current_process->id);
+    // printf("Running process %d\n", current_process->id);
     swapcontext(&main_context, &current_process->context);  // context switch to the next process
 
     // check if process has exited
@@ -271,7 +271,7 @@ int init_processlib(void (*main_stub_function)(void *), void *args) {
     // initialize scheduler context
     getcontext(&main_context);
 
-    printf("\nSCHEDULER RUNNING\n");
+    // printf("\nSCHEDULER RUNNING\n");
 
     // create process0 to run main OS loop 
     if (process_create(main_stub_function, args) < 0) {

@@ -54,7 +54,18 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        list_files(argv[1]);
+        int result = list_files(argv[1]);
+        if (result == ERROR_INVALID_PATH) {
+            printf("nanoshell: ls: Invalid path\n");
+            params->retval = -1;
+            return;
+        }
+        if (result == ERROR_FILE_TYPE_MISMATCH) {
+            printf("nanoshell: ls: Not a directory\n");
+            params->retval = -1;
+            return;
+        }
+
         params->retval = 0;
         return;
     }
