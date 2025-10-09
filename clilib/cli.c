@@ -170,6 +170,11 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
+        if (file_metadata.is_directory) {
+            printf("nanoshell: vim: %s: Is a directory\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
 
         uint32_t filesize = file_metadata.size;
 
