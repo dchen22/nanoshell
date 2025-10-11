@@ -180,7 +180,7 @@ void parse_command(void *params_struct) {
 
         // read content of file into buffer
         char *file_content = malloc(filesize + 1); // +1 for null terminator
-        read_file(argv[1], file_content, filesize);    // read file contents into buffer
+        uint32_t read_result = read_file(argv[1], file_content, filesize);    // read file contents into buffer
         file_content[filesize] = '\0'; // null terminate the buffer
         char *vim_contents = run_editor(file_content);  // start editor and write file contents to it
         write_file(argv[1], vim_contents, strlen(vim_contents));    // write new contents back to file

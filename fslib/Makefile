@@ -6,6 +6,7 @@ CFLAGS = -Wall -Wextra -std=c11 -g
 MAIN_TARGET = main
 TEST_FS_TARGET = test_fs
 TEST_FORMAT_TARGET = test_format
+MONITOR_TARGET = monitor
 
 # Object files
 FS_OBJS = fs.o mkfs.o helpers.o fs_helper.o interface.o
@@ -13,9 +14,10 @@ FS_OBJS = fs.o mkfs.o helpers.o fs_helper.o interface.o
 MAIN_OBJS = main.o $(FS_OBJS)
 TEST_FS_OBJS = test_fs.o $(FS_OBJS)
 TEST_FORMAT_OBJS = test_format.o $(FS_OBJS)
+MONITOR_OBJS = monitor.o $(FS_OBJS)
 
 # Default rule builds all executables
-all: $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET)
+all: $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET) $(MONITOR_TARGET)
 
 # Link main program
 $(MAIN_TARGET): $(MAIN_OBJS)
@@ -29,6 +31,10 @@ $(TEST_FS_TARGET): $(TEST_FS_OBJS)
 $(TEST_FORMAT_TARGET): $(TEST_FORMAT_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(TEST_FORMAT_OBJS)
 
+# Link monitor program
+$(MONITOR_TARGET): $(MONITOR_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(MONITOR_OBJS)
+
 # Compilation rules
 main.o: main.c fs.h mkfs.h
 	$(CC) $(CFLAGS) -c main.c
@@ -38,6 +44,9 @@ test_fs.o: test_fs.c fs.h mkfs.h test_fs.h
 
 test_format.o: test_format.c fs.h mkfs.h helpers.h
 	$(CC) $(CFLAGS) -c test_format.c
+
+monitor.o: monitor.c fs.h mkfs.h fs_helper.h
+	$(CC) $(CFLAGS) -c monitor.c
 
 fs.o: fs.c fs.h helpers.h fs_helper.h
 	$(CC) $(CFLAGS) -c fs.c
@@ -56,4 +65,4 @@ interface.o: interface.c interface.h
 
 # Clean up
 clean:
-	rm -f *.o $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET)
+	rm -f *.o $(MAIN_TARGET) $(TEST_FS_TARGET) $(TEST_FORMAT_TARGET) $(MONITOR_TARGET)

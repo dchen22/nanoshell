@@ -299,18 +299,22 @@ int _delete_inode(inode_t* parent, const char *filename) {
 
 uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
     if (parent == NULL) {
+        fprintf(stderr, "read_inode ERROR: Invalid parent\n");
         return ERROR_INVALID_PARENT;
     }
     if (!parent->is_directory) {
+        fprintf(stderr, "read_inode ERROR: Parent is not a directory\n");
         return ERROR_FILE_TYPE_MISMATCH;
     }
     // linear search through files
     inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
+        fprintf(stderr, "read_inode ERROR: File not found\n");
         return ERROR_FILE_NOT_FOUND;
     }
     
     if (inode->is_directory) {
+        fprintf(stderr, "read_inode ERROR: File is a directory\n");
         return ERROR_FILE_TYPE_MISMATCH;
     }
 
@@ -337,6 +341,7 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
             bytes_read += buffer_size - bytes_read;
             // debug
             if (bytes_read != buffer_size) {
+                fprintf(stderr, "read_inode ERROR: Corruption detected\n");
                 return ERROR_CORRUPTION_DETECTED;
             }
             return bytes_read;
@@ -348,24 +353,24 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
     if (inode->indirect_blocknum != 0) {
         uint32_t* indirect_blocknum = (uint32_t*)(disk_start + inode->indirect_blocknum * BLOCK_SIZE);
         for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(uint32_t); i++ ) {
-            if (indirect_blocknum[i] == 0) {
-                break;
-            }
-            char* block = (char*)(disk_start + indirect_blocknum[i] * BLOCK_SIZE);
-            if (bytes_read + BLOCK_SIZE <= buffer_size) {   // buffer can still fit at least one block
-                // copy full block
-                memcpy(buffer + bytes_read, block, BLOCK_SIZE);
-                bytes_read += BLOCK_SIZE;
-            } else {    // buffer cannot fit another block
-                // partially copy block
-                memcpy(buffer + bytes_read, block, buffer_size - bytes_read);
-                bytes_read += buffer_size - bytes_read;
-                // debug
-                if (bytes_read != buffer_size) {
-                    return ERROR_CORRUPTION_DETECTED;
+            if (indirect_blocknum[i] != 0) {
+                char* block = (char*)(disk_start + indirect_blocknum[i] * BLOCK_SIZE);
+                if (bytes_read + BLOCK_SIZE <= buffer_size) {   // buffer can still fit at least one block
+                    // copy full block
+                    memcpy(buffer + bytes_read, block, BLOCK_SIZE);
+                    bytes_read += BLOCK_SIZE;
+                } else {    // buffer cannot fit another block
+                    // partially copy block
+                    memcpy(buffer + bytes_read, block, buffer_size - bytes_read);
+                    bytes_read += buffer_size - bytes_read;
+                    // debug
+                    if (bytes_read != buffer_size) {
+                        return ERROR_CORRUPTION_DETECTED;
+                    }
+                    return bytes_read;
                 }
-                return bytes_read;
             }
+            
         }
     }
 
@@ -392,6 +397,26 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
 
     uint32_t bytes_written = 0;
     uint32_t available_data_block_index = 0;
+
+    // First, deallocate all existing data blocks
+    for (unsigned int i = 0; i < 12; i++) {
+        if (inode->direct_blocknums[i] != 0) {
+            bitmapset(data_bitmap, sb->num_total_blocks, inode->direct_blocknums[i], false);
+            inode->direct_blocknums[i] = 0;
+        }
+    }
+    
+    // Deallocate indirect block and all blocks it points to
+    if (inode->indirect_blocknum != 0) {
+        uint32_t* indirect_block = (uint32_t*)(disk_start + inode->indirect_blocknum * BLOCK_SIZE);
+        for (uint32_t i = 0; i < BLOCK_SIZE / sizeof(uint32_t); i++) {
+            if (indirect_block[i] != 0) {
+                bitmapset(data_bitmap, sb->num_total_blocks, indirect_block[i], false);
+            }
+        }
+        bitmapset(data_bitmap, sb->num_total_blocks, inode->indirect_blocknum, false);
+        inode->indirect_blocknum = 0;
+    }
 
     inode->size = 0; // reset file size, it is being overwritten
 

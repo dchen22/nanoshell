@@ -100,13 +100,15 @@ int delete_file(const char *filepath) {
 
 uint32_t read_file(const char *filepath, char *buffer, uint32_t buffer_size) {
     if (filepath == NULL) {
-        return ERROR_INVALID_PATH;
+        fprintf(stderr, "read_file ERROR: Invalid path\n");
+        return 0;
     }
     unsigned int path_len = 0; bool out_is_dir = false;
     inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
     if (inodes == NULL) {
+        fprintf(stderr, "read_file ERROR: Invalid path\n");
         free_split_path_inodes(inodes);
-        return ERROR_INVALID_PATH;
+        return 0;
     }
 
     uint32_t result = _read_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);
@@ -116,13 +118,13 @@ uint32_t read_file(const char *filepath, char *buffer, uint32_t buffer_size) {
 
 uint32_t write_file(const char *filepath, const char *buffer, uint32_t buffer_size) {
     if (filepath == NULL) {
-        return ERROR_INVALID_PATH;
+        return 0;
     }
     unsigned int path_len = 0; bool out_is_dir = false;
     inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
     if (inodes == NULL) {
         free_split_path_inodes(inodes);
-        return ERROR_INVALID_PATH;
+        return 0;
     }
 
     uint32_t result = _write_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);

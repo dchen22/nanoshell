@@ -138,13 +138,11 @@ static void refresh_screen(void) {
     
     // Render visible lines
     while (i < buf_len && screen_row < visible_rows) {
-        if (buffer[i] == '\n') {
-            write(STDOUT_FILENO, &buffer[i], 1);  // Write the newline
+        write(STDOUT_FILENO, &buffer[i], 1);
+        if (buffer[i] == '\n') {    
             screen_row++;
             current_row++;
-        } else {
-            write(STDOUT_FILENO, &buffer[i], 1);
-        }
+        } 
         i++;
     }
     

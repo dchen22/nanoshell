@@ -81,10 +81,11 @@ uint32_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* bu
         *bytes_written += BLOCK_SIZE;
         return BLOCK_SIZE;
     } else {
-        memcpy(disk_start + block_index * BLOCK_SIZE, buffer + *bytes_written, buffer_size - *bytes_written);
-        inode->size += buffer_size - *bytes_written;
-        *bytes_written += buffer_size - *bytes_written;
-        return buffer_size - *bytes_written;
+        uint32_t bytes_to_write = buffer_size - *bytes_written;
+        memcpy(disk_start + block_index * BLOCK_SIZE, buffer + *bytes_written, bytes_to_write);
+        inode->size += bytes_to_write;
+        *bytes_written += bytes_to_write;
+        return bytes_to_write;  // Fixed: return the actual bytes written
     }
 
     printf("WRITE_TO_DATABLOCK FAILURE: Failed to write to data block\n");
