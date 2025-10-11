@@ -33,9 +33,9 @@ int _delete_inode(inode_t* parent, const char *filename);
  * @param filename The name of the file to read
  * @param buffer The buffer to read the file into
  * @param buffer_size The size of the buffer
- * @return Number of bytes read (0 may indicate empty file or error)
+ * @return Number of bytes read
  */
-uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size);
+fs_result_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size);
 
 /**
  * Write to a file. Overwrites the contents of the file.
@@ -45,7 +45,7 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
  * @param buffer_size The size of the buffer
  * @return Number of bytes written 
  */
-uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size);
+fs_result_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size);
 
 /**
  * Print all files in the filesystem

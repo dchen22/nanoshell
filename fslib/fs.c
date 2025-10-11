@@ -94,7 +94,7 @@ int load_fs(const char *disk_name) {
 int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
     // ensure parent is valid
     if (parent == NULL || parent->is_allocated == false) {
-        return ERROR_INVALID_PARENT;
+        return ERROR_INVALID_PATH;
     }
     // ensure parent is a directory
     if (!parent->is_directory) {
@@ -112,7 +112,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
     // try to allocate new inode
     uint32_t new_inode_index = bitmapalloc(inode_bitmap, sb->num_max_inodes);
     if (new_inode_index == 0) {
-        return ERROR_FAILED_TO_ALLOCATE_INODE;
+        return ERROR_FS;
     }
 
     inode_t* new_inode = (inode_t*)(inode_table + new_inode_index * sizeof(inode_t));
@@ -142,7 +142,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
         if (parent->direct_blocknums[i] == 0) {
             uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
             if (available_dir_block_index == 0) {   
-                return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+                return ERROR_FS;
             }
             parent->direct_blocknums[i] = available_dir_block_index;
             uint32_t* directory_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
@@ -163,7 +163,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
         // allocate indirect block
         uint32_t available_indirect_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_indirect_block_index == 0) {
-            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+            return ERROR_FS;
         }
         parent->indirect_blocknum = available_indirect_block_index;
         uint32_t* indirect_block = (uint32_t*)(disk_start + available_indirect_block_index * BLOCK_SIZE);
@@ -173,7 +173,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
         // allocate direct block
         uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_dir_block_index == 0) {
-            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+            return ERROR_FS;
         }
         uint32_t* dir_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
         // initialize dir block to all zeroes
@@ -187,7 +187,7 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
             if (indirect_block[i] == 0) {
                 uint32_t available_dir_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
                 if (available_dir_block_index == 0) {
-                    return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+                    return ERROR_FS;
                 }
                 indirect_block[i] = available_dir_block_index;
                 uint32_t* directory_block = (uint32_t*)(disk_start + available_dir_block_index * BLOCK_SIZE);
@@ -207,20 +207,19 @@ int _create_inode(inode_t* parent, const char *filename, bool is_directory) {
     }
 
 
-    return ERROR_FAILED_TO_CREATE_FILE;
+    return ERROR_STORAGE_FULL;
 }
 
 
 int _delete_inode(inode_t* parent, const char *filename) {
     // ensure parent is valid
     if (parent == NULL || parent->is_allocated == false) {
-        return ERROR_INVALID_PARENT;
+        return ERROR_INVALID_PATH;
     }
     // ensure parent is a directory
     if (!parent->is_directory) {
         return ERROR_FILE_TYPE_MISMATCH;
     }
-
     
     
     // look for file in parent
@@ -233,7 +232,7 @@ int _delete_inode(inode_t* parent, const char *filename) {
                 if (direct_block[d] != 0) {
                     inode_t* inode = get_inode_by_index(direct_block[d]);
                     if (inode == NULL) {
-                        return ERROR_FAILED_TO_DELETE_FILE;
+                        return ERROR_CORRUPTION_DETECTED;
                     }
                     if (strcmp(inode->name, filename) == 0) {
                         inode_index = direct_block[d];
@@ -297,25 +296,26 @@ int _delete_inode(inode_t* parent, const char *filename) {
   
 }
 
-uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
+fs_result_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32_t buffer_size) {
+    fs_result_t result = {0};
     if (parent == NULL) {
-        fprintf(stderr, "read_inode ERROR: Invalid parent\n");
-        return ERROR_INVALID_PARENT;
+        result.code = ERROR_INVALID_PATH;
+        return result;
     }
     if (!parent->is_directory) {
-        fprintf(stderr, "read_inode ERROR: Parent is not a directory\n");
-        return ERROR_FILE_TYPE_MISMATCH;
+        result.code = ERROR_FILE_TYPE_MISMATCH;
+        return result;
     }
     // linear search through files
     inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
-        fprintf(stderr, "read_inode ERROR: File not found\n");
-        return ERROR_FILE_NOT_FOUND;
+        result.code = ERROR_FILE_NOT_FOUND;
+        return result;
     }
     
     if (inode->is_directory) {
-        fprintf(stderr, "read_inode ERROR: File is a directory\n");
-        return ERROR_FILE_TYPE_MISMATCH;
+        result.code = ERROR_FILE_TYPE_MISMATCH;
+        return result;
     }
 
     unsigned long bytes_read = 0; 
@@ -341,10 +341,11 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
             bytes_read += buffer_size - bytes_read;
             // debug
             if (bytes_read != buffer_size) {
-                fprintf(stderr, "read_inode ERROR: Corruption detected\n");
-                return ERROR_CORRUPTION_DETECTED;
+                result.code = ERROR_CORRUPTION_DETECTED;
+                return result;
             }
-            return bytes_read;
+            result.bytes = bytes_read;
+            return result;
         }
         
     }
@@ -365,9 +366,11 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
                     bytes_read += buffer_size - bytes_read;
                     // debug
                     if (bytes_read != buffer_size) {
-                        return ERROR_CORRUPTION_DETECTED;
+                        result.code = ERROR_CORRUPTION_DETECTED;
+                        return result;
                     }
-                    return bytes_read;
+                    result.bytes = bytes_read;
+                    return result;
                 }
             }
             
@@ -375,24 +378,30 @@ uint32_t _read_inode(inode_t* parent, const char *filename, char *buffer, uint32
     }
 
     
-    return bytes_read;
+    result.bytes = bytes_read;
+    return result;
 
 }
 
-uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
+fs_result_t _write_inode(inode_t* parent, const char *filename, const char *buffer, uint32_t buffer_size) {
+    fs_result_t result = {0};
     if (parent == NULL) {
-        return ERROR_INVALID_PARENT;
+        result.code = ERROR_INVALID_PATH;
+        return result;
     }
     if (!parent->is_directory) {
-        return ERROR_FILE_TYPE_MISMATCH;
+        result.code = ERROR_FILE_TYPE_MISMATCH;
+        return result;
     }
     inode_t* inode = get_subfile_by_name(parent, filename, NULL);
     if (inode == NULL) {
-        return ERROR_FILE_NOT_FOUND;
+        result.code = ERROR_FILE_NOT_FOUND;
+        return result;
     }
 
     if (inode->is_directory) {
-        return ERROR_FILE_TYPE_MISMATCH;
+        result.code = ERROR_FILE_TYPE_MISMATCH;
+        return result;
     }
 
     uint32_t bytes_written = 0;
@@ -424,13 +433,19 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
     for (unsigned int i = 0; i < 12; i++) {
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+            result.code = ERROR_STORAGE_FULL;
+            return result;
         }
         inode->direct_blocknums[i] = available_data_block_index;   // update direct block pointer
 
         // if less than one block was written, all data was written (or error occurred)
-        if (write_to_datablock(inode, available_data_block_index, buffer, buffer_size, &bytes_written) < BLOCK_SIZE) {
-            return bytes_written;
+        fs_result_t wtd_result = write_to_datablock(inode, available_data_block_index, buffer, buffer_size, &bytes_written);
+        result.bytes += wtd_result.bytes;
+        if (wtd_result.code != 0) { // failed write
+            result.code = wtd_result.code;
+            return result;
+        } else if (wtd_result.bytes < BLOCK_SIZE) {    // successful write of all remaining data
+            return result;
         }
     }
 
@@ -440,7 +455,8 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
     if (remaining_blocks > 0) {
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+            result.code = ERROR_STORAGE_FULL;
+            return result;
         }
         inode->indirect_blocknum = available_data_block_index;
     } else {
@@ -452,7 +468,8 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
         // allocate a data block and write to it
         available_data_block_index = bitmapalloc(data_bitmap, sb->num_total_blocks);
         if (available_data_block_index == 0) {
-            return ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK;
+            result.code = ERROR_STORAGE_FULL;
+            return result;
         }
 
         // track data block in indirect block
@@ -460,13 +477,24 @@ uint32_t _write_inode(inode_t* parent, const char *filename, const char *buffer,
         indirect_block[i] = available_data_block_index;
 
         // if less than one block was written, all data was written (or error occurred)
-        if (write_to_datablock(inode, available_data_block_index, buffer, buffer_size, &bytes_written) < BLOCK_SIZE) {
-            return bytes_written;
+        fs_result_t wtd_result = write_to_datablock(inode, available_data_block_index, buffer, buffer_size, &bytes_written);
+        result.bytes += wtd_result.bytes;
+        if (wtd_result.code != 0) { // failed write
+            result.code = wtd_result.code;
+            return result;
+        } else if (wtd_result.bytes < BLOCK_SIZE) {    // successful write of all remaining data
+            return result;
         }
         
     }
 
-    return bytes_written;
+    if (bytes_written != buffer_size) {
+        result.code = ERROR_STORAGE_FULL;
+    } else {
+        result.code = ERROR_FS;
+    }
+    result.bytes = bytes_written;
+    return result;
 }
 
 

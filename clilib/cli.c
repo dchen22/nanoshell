@@ -75,7 +75,20 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        create_file(argv[1]);
+        int result = create_file(argv[1]);
+        if (result == ERROR_FILE_ALREADY_EXISTS) {
+            printf("nanoshell: touch: %s: File already exists\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result == ERROR_STORAGE_FULL) {
+            printf("nanoshell: touch: %s: Storage full\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result != 0) {
+            printf("nanoshell: touch: %s: Internal error\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
         params->retval = 0;
         return;
     }
@@ -85,17 +98,26 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        if (!file_exists(argv[1])) {
+        fs_result_t result = write_file(argv[1], argv[2], strlen(argv[2]));
+        if (result.code == ERROR_STORAGE_FULL) {
+            printf("nanoshell: write: %s: Storage full\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result.code == ERROR_FILE_NOT_FOUND) {
             printf("nanoshell: write: %s: No such file\n", argv[1]);
             params->retval = -1;
             return;
-        }
-        if (!(get_file_metadata(argv[1]).is_directory)) {
-            printf("nanoshell: write: %s is a directory\n", argv[1]);
+        } else if (result.code == ERROR_FILE_TYPE_MISMATCH) {
+            printf("nanoshell: write: %s: Is a directory\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result.code != 0) {
+            printf("nanoshell: write: %s: Internal error\n", argv[1]);
             params->retval = -1;
             return;
         }
-        printf("%u bytes written\n", write_file(argv[1], argv[2], strlen(argv[2])));
+        
+        printf("%u bytes written\n", result.bytes);
         params->retval = 0;
         return;
     }
@@ -105,11 +127,12 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        // check if file exists
-        if (!file_exists(argv[1])) {
+
+        if (!file_exists(argv[1])) {    
             printf("nanoshell: cat: %s: No such file\n", argv[1]);
             params->retval = -1;
             return;
+
         }
 
         inode_t file_metadata = get_file_metadata(argv[1]);
@@ -118,16 +141,29 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-
-        uint32_t filesize = file_metadata.size;
-    
-        if (filesize == 0)  {
-            params->retval = 0;    // empty file, do nothing
+        if (file_metadata.is_directory) {
+            printf("nanoshell: vim: %s: Is a directory\n", argv[1]);
+            params->retval = -1;
             return;
         }
 
+        uint32_t filesize = file_metadata.size;
+
         char *readbuffer = malloc(filesize + 1); // +1 for null terminator
-        read_file(argv[1], readbuffer, filesize);
+        fs_result_t result = read_file(argv[1], readbuffer, filesize);
+        if (result.code == ERROR_FILE_NOT_FOUND) {
+            printf("nanoshell: cat: %s: No such file\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result.code == ERROR_FILE_TYPE_MISMATCH) {
+            printf("nanoshell: cat: %s: Is a directory\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result.code != 0) {
+            printf("nanoshell: cat: %s: Internal error\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
         readbuffer[filesize] = '\0'; // null terminate the buffer
         printf("%s\n", readbuffer); // we will add a newline for qol
         free(readbuffer);
@@ -140,8 +176,13 @@ void parse_command(void *params_struct) {
             params->retval = -1;
             return;
         }
-        if (delete_file(argv[1]) < 0) {
+        int result = delete_file(argv[1]);
+        if (result == ERROR_FILE_NOT_FOUND) {
             printf("nanoshell: rm: %s: No such file\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result != 0) {
+            printf("nanoshell: rm: %s: Internal error\n", argv[1]);
             params->retval = -1;
             return;
         }
@@ -180,10 +221,32 @@ void parse_command(void *params_struct) {
 
         // read content of file into buffer
         char *file_content = malloc(filesize + 1); // +1 for null terminator
-        uint32_t read_result = read_file(argv[1], file_content, filesize);    // read file contents into buffer
+        fs_result_t read_result = read_file(argv[1], file_content, filesize);    // read file contents into buffer
+        if (read_result.code == ERROR_FILE_NOT_FOUND) {
+            printf("nanoshell: vim: %s: No such file\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (read_result.code == ERROR_FILE_TYPE_MISMATCH) {
+            printf("nanoshell: vim: %s: Is a directory\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (read_result.code != 0) {
+            printf("nanoshell: vim: %s: Internal error\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
         file_content[filesize] = '\0'; // null terminate the buffer
         char *vim_contents = run_editor(file_content);  // start editor and write file contents to it
-        write_file(argv[1], vim_contents, strlen(vim_contents));    // write new contents back to file
+        fs_result_t result = write_file(argv[1], vim_contents, strlen(vim_contents));
+        if (result.code == ERROR_STORAGE_FULL) {
+            printf("nanoshell: vim: %s: Storage full\n", argv[1]);
+            params->retval = -1;
+            return;
+        } else if (result.code != 0) {
+            printf("nanoshell: vim: %s: Internal error\n", argv[1]);
+            params->retval = -1;
+            return;
+        }
         free(file_content); // free the file content buffer
         
         printf("\n"); // newline after exiting vim for better formatting

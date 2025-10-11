@@ -6,14 +6,17 @@ enum {
     ERROR_FILE_TYPE_MISMATCH = -2,
     ERROR_FILE_ALREADY_EXISTS = -3,
     ERROR_INVALID_PATH = -4,
-    ERROR_INVALID_PARENT = -5,
-    ERROR_MAX_FILES_REACHED = -6,
-    ERROR_FAILED_TO_ALLOCATE_INODE = -7,
-    ERROR_FAILED_TO_ALLOCATE_DATA_BLOCK = -8,
-    ERROR_FAILED_TO_CREATE_FILE = -9,
-    ERROR_FAILED_TO_DELETE_FILE = -10,
-    ERROR_CORRUPTION_DETECTED = -11
+    ERROR_MAX_FILES_REACHED = -5,
+    ERROR_CORRUPTION_DETECTED = -6,
+    ERROR_BUFFER = -7,
+    ERROR_FS = -8,
+    ERROR_STORAGE_FULL = -9,
 };
+
+typedef struct fs_result {
+    uint32_t bytes; // number of bytes read or written
+    int code;       // error code, 0 on success
+} fs_result_t;
 
 /**
  * Get an inode by name
@@ -48,7 +51,7 @@ inode_t* get_inode_by_index(uint32_t inode_index);
  * @param bytes_written Number of bytes already written to the buffer. Updated by this function
  * 
  */
-uint32_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* buffer, uint32_t buffer_size, uint32_t* bytes_written);
+fs_result_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* buffer, uint32_t buffer_size, uint32_t* bytes_written);
 
 
 /**

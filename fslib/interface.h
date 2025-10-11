@@ -22,7 +22,7 @@ int delete_file(const char *filepath);
  * @param buffer_size Size of the buffer
  * @return Number of bytes read, 0 indicates empty file or error
  */
-uint32_t read_file(const char *filepath, char *buffer, uint32_t buffer_size);
+fs_result_t read_file(const char *filepath, char *buffer, uint32_t buffer_size);
 
 /**
  * Write to a file
@@ -31,7 +31,7 @@ uint32_t read_file(const char *filepath, char *buffer, uint32_t buffer_size);
  * @param buffer_size Size of the buffer
  * @return Number of bytes written, 0 indicates error
  */
-uint32_t write_file(const char *filepath, const char *buffer, uint32_t buffer_size);
+fs_result_t write_file(const char *filepath, const char *buffer, uint32_t buffer_size);
 
 /**
  * Get the metadata of a file

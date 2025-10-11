@@ -65,31 +65,31 @@ inode_t* get_inode_by_index(uint32_t inode_index) {
     return NULL;
 }
 
-uint32_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* buffer, uint32_t buffer_size, uint32_t* bytes_written) {
+fs_result_t write_to_datablock(inode_t* inode, uint32_t block_index, const char* buffer, uint32_t buffer_size, uint32_t* bytes_written) {
+    fs_result_t result = {0};
     if (buffer_size < *bytes_written) {
-        printf("WRITE_TO_DATABLOCK FAILURE: bytes_read is greater than buffer_size\n");
-        return 0;
+        result.code = ERROR_BUFFER;
+        return result;
     }
 
     if (buffer_size == *bytes_written) {
-        return 0;
+        return result;
     }
 
     if (buffer_size - *bytes_written >= BLOCK_SIZE) {
         memcpy(disk_start + block_index * BLOCK_SIZE, buffer + *bytes_written, BLOCK_SIZE);
         inode->size += BLOCK_SIZE;
         *bytes_written += BLOCK_SIZE;
-        return BLOCK_SIZE;
+        result.bytes = BLOCK_SIZE;
+        return result;
     } else {
         uint32_t bytes_to_write = buffer_size - *bytes_written;
         memcpy(disk_start + block_index * BLOCK_SIZE, buffer + *bytes_written, bytes_to_write);
         inode->size += bytes_to_write;
         *bytes_written += bytes_to_write;
-        return bytes_to_write;  // Fixed: return the actual bytes written
+        result.bytes = bytes_to_write;
+        return result;
     }
-
-    printf("WRITE_TO_DATABLOCK FAILURE: Failed to write to data block\n");
-    return 0;
 }
 
 inode_t** get_files_in_dir(inode_t* directory, uint32_t *num_files) {

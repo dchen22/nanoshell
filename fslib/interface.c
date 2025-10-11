@@ -59,7 +59,7 @@ int create_file(const char *filepath) {
     free(working_path);
     
     if (inodes == NULL) {
-        return ERROR_INVALID_PATH;
+        return ERROR_FILE_NOT_FOUND;
     }
     
     printf("path_len: %d\n", path_len);
@@ -71,7 +71,7 @@ int create_file(const char *filepath) {
     if (_create_inode(parent, filename, is_directory) < 0) {
         free_split_path_inodes(inodes);
         free(filename);
-        return ERROR_FAILED_TO_CREATE_FILE;
+        return ERROR_FS;
     }
     
     free_split_path_inodes(inodes);
@@ -87,10 +87,10 @@ int delete_file(const char *filepath) {
     inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
     if (inodes == NULL || path_len < 2) {
         free_split_path_inodes(inodes);
-        return ERROR_INVALID_PATH;
+        return ERROR_FILE_NOT_FOUND;
     }
     if (_delete_inode(inodes[path_len - 2], inodes[path_len - 1]->name) < 0) {
-        return ERROR_FAILED_TO_DELETE_FILE;
+        return ERROR_FS;
     }
 
     free_split_path_inodes(inodes);
@@ -98,36 +98,40 @@ int delete_file(const char *filepath) {
     return 0;
 }
 
-uint32_t read_file(const char *filepath, char *buffer, uint32_t buffer_size) {
+fs_result_t read_file(const char *filepath, char *buffer, uint32_t buffer_size) {
+    fs_result_t result = {0};
     if (filepath == NULL) {
-        fprintf(stderr, "read_file ERROR: Invalid path\n");
-        return 0;
+        result.code = ERROR_INVALID_PATH;
+        return result;
     }
     unsigned int path_len = 0; bool out_is_dir = false;
     inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
     if (inodes == NULL) {
-        fprintf(stderr, "read_file ERROR: Invalid path\n");
         free_split_path_inodes(inodes);
-        return 0;
+        result.code = ERROR_INVALID_PATH;
+        return result;
     }
 
-    uint32_t result = _read_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);
+    result = _read_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);
     free_split_path_inodes(inodes);
     return result;
 }
 
-uint32_t write_file(const char *filepath, const char *buffer, uint32_t buffer_size) {
+fs_result_t write_file(const char *filepath, const char *buffer, uint32_t buffer_size) {
+    fs_result_t result = {0};
     if (filepath == NULL) {
-        return 0;
+        result.code = ERROR_INVALID_PATH;
+        return result;
     }
     unsigned int path_len = 0; bool out_is_dir = false;
     inode_t** inodes = split_path_inodes(filepath, &path_len, &out_is_dir);
     if (inodes == NULL) {
         free_split_path_inodes(inodes);
-        return 0;
+        result.code = ERROR_FILE_NOT_FOUND;
+        return result;
     }
 
-    uint32_t result = _write_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);
+    result = _write_inode(inodes[path_len - 2], inodes[path_len - 1]->name, buffer, buffer_size);
     free_split_path_inodes(inodes);
     return result;
 }
